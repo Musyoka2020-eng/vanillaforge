@@ -1,0 +1,63 @@
+{
+  "name": "vanilla-js-spa-framework",
+  "version": "1.0.0",
+  "description": "A modern, lightweight vanilla JavaScript framework for building Single Page Applications with component-based architecture",
+  "type": "module",
+  "main": "src/framework.js",
+  "keywords": [
+    "vanilla-javascript",
+    "spa-framework",
+    "component-based",
+    "router",
+    "event-bus",
+    "no-dependencies",
+    "lightweight",
+    "modern-web"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "dev": "npm run build && npm run serve",
+    "serve": "npx http-server dist -p 3000 -c-1 --cors --proxy http://localhost:3000?",
+    "lint": "eslint src/ --ext .js",
+    "format": "prettier --write \"src/**/*.{js,css,html}\"",
+    "test": "echo 'Tests will be added'",
+    "example": "cd examples/todo-app && npm run dev"
+  },
+  "devDependencies": {
+    "eslint": "^9.12.0",
+    "prettier": "^3.3.3",
+    "http-server": "^14.1.1"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/vanilla-js-spa-framework.git"
+  },
+  "files": [
+    "src/",
+    "scripts/",
+    "examples/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "framework": {
+    "name": "Vanilla JS SPA Framework",
+    "features": [
+      "Component-based architecture",
+      "Client-side routing",
+      "Event-driven communication",
+      "State management",
+      "Error handling",
+      "Logging system",
+      "Build system",
+      "No external dependencies"
+    ],
+    "size": "< 50KB minified",
+    "browserSupport": "ES2020+ (Chrome 80+, Firefox 72+, Safari 14+)"
+  }
+}
