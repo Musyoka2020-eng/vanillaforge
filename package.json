@@ -12,9 +12,8 @@
     "no-dependencies",
     "lightweight",
     "modern-web",
-    "forge"
-  ],
-  "author": "",
+    "forge"  ],
+  "author": "Stephen Musyoka",
   "license": "MIT",
   "scripts": {
     "build": "node scripts/build.js",
@@ -35,7 +34,7 @@
     "node": ">=18.0.0"
   },  "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/vanillaforge.git"
+    "url": "https://github.com/Musyoka2020-eng/vanillaforge.git"
   },
   "files": [
     "src/",

@@ -12,7 +12,7 @@
  * - Error handling and logging
  * - Build system
  * 
- * @author VanillaForge Team
+ * @author Stephen Musyoka - VanillaForge Creator
  * @version 1.0.0
  * @since 2025-06-15
  */

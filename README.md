@@ -22,7 +22,7 @@ A lightweight, powerful framework that gives you all the tools to build sophisti
 
 ```bash
 # Clone VanillaForge
-git clone https://github.com/your-username/vanillaforge.git
+git clone https://github.com/Musyoka2020-eng/vanillaforge.git
 cd vanillaforge
 
 # Install dev dependencies
@@ -381,11 +381,18 @@ MIT License - see LICENSE file for details
 - [State Management](docs/state-management.md)
 - [Build System](docs/build-system.md)
 
-## 🔗 Links
+## �‍💻 Author
 
-- [GitHub Repository](https://github.com/your-username/vanillaforge)
+**Stephen Musyoka**  
+Creator of VanillaForge Framework
+
+*"Forging the future of vanilla JavaScript development, one component at a time."*
+
+## �🔗 Links
+
+- [GitHub Repository](https://github.com/Musyoka2020-eng/vanillaforge)
 - [Examples](./examples/)
-- [Issue Tracker](https://github.com/your-username/vanillaforge/issues)
+- [Issue Tracker](https://github.com/Musyoka2020-eng/vanillaforge/issues)
 
 ---
 
