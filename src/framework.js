@@ -1,7 +1,7 @@
 /**
- * Vanilla JS SPA Framework
+ * VanillaForge Framework
  * 
- * A modern, lightweight framework for building Single Page Applications
+ * A modern, lightweight framework for forging Single Page Applications
  * with vanilla JavaScript. No external dependencies required.
  * 
  * Features:
@@ -12,7 +12,7 @@
  * - Error handling and logging
  * - Build system
  * 
- * @author Framework Team
+ * @author VanillaForge Team
  * @version 1.0.0
  * @since 2025-06-15
  */
@@ -35,12 +35,12 @@ export { Validator } from './utils/validation.js';
 /**
  * Framework Application Class
  * 
- * Main application class that initializes and manages the framework
+ * Main application class that initializes and manages VanillaForge
  */
 export class FrameworkApp {
     constructor(config = {}) {
         this.config = {
-            appName: 'Vanilla JS App',
+            appName: 'VanillaForge App',
             debug: false,
             router: {
                 mode: 'history',
@@ -66,7 +66,7 @@ export class FrameworkApp {
             this.frameworkDebug.enable();
         }
         
-        this.logger.info('Framework application created', this.config);
+        this.logger.info('VanillaForge application created', this.config);
     }
     
     /**
@@ -218,7 +218,7 @@ export function createApp(config = {}) {
 
 // Framework metadata
 export const FRAMEWORK_VERSION = '1.0.0';
-export const FRAMEWORK_NAME = 'Vanilla JS SPA Framework';
+export const FRAMEWORK_NAME = 'VanillaForge';
 
 // Default export
 export default {

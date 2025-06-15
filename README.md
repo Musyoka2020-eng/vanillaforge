@@ -1,6 +1,8 @@
-# 🚀 Vanilla JS SPA Framework
+# � VanillaForge
 
-A modern, lightweight framework for building Single Page Applications with vanilla JavaScript. No external dependencies, no build complexity - just clean, efficient code.
+**Forge modern Single Page Applications with vanilla JavaScript**
+
+A lightweight, powerful framework that gives you all the tools to build sophisticated SPAs without the complexity of large frameworks or external dependencies.
 
 ## ✨ Features
 
@@ -19,9 +21,9 @@ A modern, lightweight framework for building Single Page Applications with vanil
 ### Installation
 
 ```bash
-# Clone the framework
-git clone https://github.com/your-username/vanilla-js-spa-framework.git
-cd vanilla-js-spa-framework
+# Clone VanillaForge
+git clone https://github.com/your-username/vanillaforge.git
+cd vanillaforge
 
 # Install dev dependencies
 npm install
@@ -45,8 +47,8 @@ class HomeComponent extends BaseComponent {
     render() {
         return `
             <div class="home">
-                <h1>Welcome to Vanilla JS Framework!</h1>
-                <p>Build amazing SPAs with vanilla JavaScript.</p>
+                <h1>Welcome to VanillaForge! 🔥</h1>
+                <p>Forge amazing SPAs with vanilla JavaScript.</p>
             </div>
         `;
     }
@@ -361,14 +363,15 @@ npm run build
 
 MIT License - see LICENSE file for details
 
-## 🌟 Why This Framework?
+## 🌟 Why VanillaForge?
 
-- **No Dependencies**: Zero external dependencies means no security vulnerabilities or update headaches
-- **Modern JavaScript**: Uses ES2020+ features for clean, efficient code
-- **Educational**: Great for learning how frameworks work under the hood
-- **Lightweight**: Perfect for projects where bundle size matters
-- **Flexible**: Easy to extend and customize for your needs
-- **Production Ready**: Includes error handling, logging, and build system
+- **🔥 No Dependencies**: Zero external dependencies means no security vulnerabilities or update headaches
+- **⚡ Modern JavaScript**: Uses ES2020+ features for clean, efficient code
+- **📚 Educational**: Perfect for learning how frameworks work under the hood
+- **🪶 Lightweight**: Perfect for projects where bundle size matters
+- **🔧 Flexible**: Easy to extend and customize for your needs
+- **🏗️ Production Ready**: Includes error handling, logging, and build system
+- **🚀 Fast Development**: Intuitive API that gets out of your way
 
 ## 📖 Documentation
 
@@ -380,10 +383,10 @@ MIT License - see LICENSE file for details
 
 ## 🔗 Links
 
-- [GitHub Repository](https://github.com/your-username/vanilla-js-spa-framework)
+- [GitHub Repository](https://github.com/your-username/vanillaforge)
 - [Examples](./examples/)
-- [Issue Tracker](https://github.com/your-username/vanilla-js-spa-framework/issues)
+- [Issue Tracker](https://github.com/your-username/vanillaforge/issues)
 
 ---
 
-**Happy coding with Vanilla JS! 🎉**
+**Happy forging with VanillaForge! 🔥**

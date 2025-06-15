@@ -1,10 +1,9 @@
-{
-  "name": "vanilla-js-spa-framework",
+{  "name": "vanillaforge",
   "version": "1.0.0",
-  "description": "A modern, lightweight vanilla JavaScript framework for building Single Page Applications with component-based architecture",
+  "description": "VanillaForge - A modern, lightweight vanilla JavaScript framework for forging Single Page Applications",
   "type": "module",
-  "main": "src/framework.js",
-  "keywords": [
+  "main": "src/framework.js",  "keywords": [
+    "vanillaforge",
     "vanilla-javascript",
     "spa-framework",
     "component-based",
@@ -12,9 +11,10 @@
     "event-bus",
     "no-dependencies",
     "lightweight",
-    "modern-web"
+    "modern-web",
+    "forge"
   ],
-  "author": "Your Name",
+  "author": "",
   "license": "MIT",
   "scripts": {
     "build": "node scripts/build.js",
@@ -33,10 +33,9 @@
   "dependencies": {},
   "engines": {
     "node": ">=18.0.0"
-  },
-  "repository": {
+  },  "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/vanilla-js-spa-framework.git"
+    "url": "https://github.com/your-username/vanillaforge.git"
   },
   "files": [
     "src/",
@@ -44,9 +43,9 @@
     "examples/",
     "README.md",
     "CHANGELOG.md"
-  ],
-  "framework": {
-    "name": "Vanilla JS SPA Framework",
+  ],  "framework": {
+    "name": "VanillaForge",
+    "tagline": "Forge modern SPAs with vanilla JavaScript",
     "features": [
       "Component-based architecture",
       "Client-side routing",
