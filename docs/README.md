@@ -43,7 +43,7 @@ Requires ES2020+ support.
 
 ```bash
 # Clone VanillaForge
-git clone https://github.com/your-username/vanillaforge.git
+git clone https://github.com/Musyoka2020-eng/vanillaforge.git
 cd vanillaforge
 
 # Install dev dependencies
