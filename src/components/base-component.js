@@ -1,7 +1,7 @@
 /**
  * Base Component Class
  * 
- * This is the foundation class for all UI components in the Universal Contribution Manager.
+ * This is the foundation class for all UI components in VanillaForge applications.
  * It provides common functionality for component lifecycle, event handling, and state management.
  * 
  * Features:
@@ -11,9 +11,9 @@
  * - Property validation
  * - Error boundary protection
  * 
- * @author Universal Contribution Manager Team
- * @version 3.0.0
- * @since 2024-06-14
+ * @author VanillaForge Team
+ * @version 1.0.0
+ * @since 2025-06-15
  */
 
 import { EventBus } from '../core/event-bus.js';

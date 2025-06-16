@@ -30,7 +30,17 @@ export { Logger } from './utils/logger.js';
 export { ErrorHandler, ErrorType } from './utils/error-handler.js';
 export { FrameworkDebug } from './utils/framework-debug.js';
 export { SweetAlert } from './utils/sweet-alert.js';
-export { Validator } from './utils/validation.js';
+export { ValidationUtils } from './utils/validation.js';
+export { PerformanceUtils, performanceUtils, perf, cache } from './utils/performance.js';
+
+// Import classes for internal use
+import { ComponentManager } from './core/component-manager.js';
+import { Router } from './core/router.js';
+import { EventBus } from './core/event-bus.js';
+import { Logger } from './utils/logger.js';
+import { ErrorHandler } from './utils/error-handler.js';
+import { FrameworkDebug } from './utils/framework-debug.js';
+import { performanceUtils } from './utils/performance.js';
 
 /**
  * Framework Application Class
@@ -59,10 +69,11 @@ export class FrameworkApp {
         this.componentManager = new ComponentManager(this.eventBus);
         this.router = null;
         this.isInitialized = false;
+        this.performanceUtils = performanceUtils;
         
         // Enable debug mode if configured
         if (this.config.debug) {
-            this.frameworkDebug = new FrameworkDebug(this.eventBus);
+            this.frameworkDebug = new FrameworkDebug(this);
             this.frameworkDebug.enable();
         }
         
@@ -78,11 +89,21 @@ export class FrameworkApp {
             this.logger.warn('Application already initialized');
             return;
         }
-        
-        try {
+          try {
             this.logger.info('Initializing framework application...');
             
-            // Initialize router if routing is enabled
+            // Initialize component manager first (to set up event listeners)
+            await this.componentManager.initialize();
+            
+            // Register components
+            if (options.components) {
+                Object.entries(options.components).forEach(([name, component]) => {
+                    this.componentManager.registerComponent(name, component);
+                });
+                this.logger.info('Components registered', Object.keys(options.components));
+            }
+            
+            // Initialize router if routing is enabled (after ComponentManager is ready)
             if (options.routes) {
                 this.router = new Router(this.eventBus);
                 
@@ -94,17 +115,6 @@ export class FrameworkApp {
                 await this.router.initialize();
                 this.logger.info('Router initialized with routes', Object.keys(options.routes));
             }
-            
-            // Register components
-            if (options.components) {
-                Object.entries(options.components).forEach(([name, component]) => {
-                    this.componentManager.registerComponent(name, component);
-                });
-                this.logger.info('Components registered', Object.keys(options.components));
-            }
-            
-            // Initialize component manager
-            await this.componentManager.initialize();
             
             this.isInitialized = true;
             this.eventBus.emit('framework:initialized', { app: this });
@@ -159,8 +169,7 @@ export class FrameworkApp {
     /**
      * Get a service or component
      * @param {string} name - Service/component name
-     */
-    get(name) {
+     */    get(name) {
         switch (name) {
             case 'eventBus':
                 return this.eventBus;
@@ -172,6 +181,8 @@ export class FrameworkApp {
                 return this.logger;
             case 'errorHandler':
                 return this.errorHandler;
+            case 'performanceUtils':
+                return this.performanceUtils;
             default:
                 return this.componentManager.getComponent(name);
         }
@@ -189,13 +200,15 @@ export class FrameworkApp {
             if (this.router) {
                 await this.router.cleanup();
             }
-            
-            await this.componentManager.cleanup();
+              await this.componentManager.cleanup();
             this.eventBus.cleanup();
             
             if (this.frameworkDebug) {
                 this.frameworkDebug.disable();
             }
+            
+            // Cleanup performance utilities
+            this.performanceUtils.cleanup();
             
             this.isInitialized = false;
             this.logger.info('Framework application shutdown complete');
@@ -219,21 +232,3 @@ export function createApp(config = {}) {
 // Framework metadata
 export const FRAMEWORK_VERSION = '1.0.0';
 export const FRAMEWORK_NAME = 'VanillaForge';
-
-// Default export
-export default {
-    FrameworkApp,
-    createApp,
-    ComponentManager,
-    Router,
-    EventBus,
-    BaseComponent,
-    Logger,
-    ErrorHandler,
-    ErrorType,
-    FrameworkDebug,
-    SweetAlert,
-    Validator,
-    FRAMEWORK_VERSION,
-    FRAMEWORK_NAME
-};

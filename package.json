@@ -12,13 +12,14 @@
     "no-dependencies",
     "lightweight",
     "modern-web",
-    "forge"  ],
-  "author": "Stephen Musyoka",
-  "license": "MIT",
-  "scripts": {
+    "forge"
+  ],
+  "author": "",
+  "license": "MIT",  "scripts": {
     "build": "node scripts/build.js",
     "dev": "npm run build && npm run serve",
-    "serve": "npx http-server dist -p 3000 -c-1 --cors --proxy http://localhost:3000?",
+    "serve": "npx http-server dist -p 3000 -c-1 --cors",
+    "serve-dev": "npx http-server . -p 3000 -c-1 --cors",
     "lint": "eslint src/ --ext .js",
     "format": "prettier --write \"src/**/*.{js,css,html}\"",
     "test": "echo 'Tests will be added'",
@@ -34,7 +35,7 @@
     "node": ">=18.0.0"
   },  "repository": {
     "type": "git",
-    "url": "https://github.com/Musyoka2020-eng/vanillaforge.git"
+    "url": "https://github.com/your-username/vanillaforge.git"
   },
   "files": [
     "src/",

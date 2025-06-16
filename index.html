@@ -2,295 +2,103 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VanillaForge - Demo</title>
-    
-    <!-- Framework Styles -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>VanillaForge - Modern Vanilla JavaScript SPA Framework</title>
     <link rel="stylesheet" href="src/styles/main.css">
     <link rel="stylesheet" href="src/styles/components.css">
-    
+    <link rel="stylesheet" href="src/styles/components/sweet-alert.css">
     <style>
-        /* Example-specific styles */
-        .demo-app {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
-        .demo-nav {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: var(--background-secondary);
-            border-radius: 8px;
-        }
-        
-        .demo-nav a {
-            margin-right: 15px;
-            color: var(--color-primary);
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            transition: background-color 0.2s;
-        }
-        
-        .demo-nav a:hover {
-            background: var(--color-primary-light);
-        }
-        
-        .demo-nav a.active {
-            background: var(--color-primary);
-            color: white;
-        }
-        
-        .counter-demo {
-            text-align: center;
-            padding: 40px;
-            background: var(--background-secondary);
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        
-        .counter-demo h2 {
-            color: var(--color-primary);
+        .loading-spinner {
+            animation: spin 1s linear infinite;
             font-size: 2rem;
-            margin-bottom: 20px;
+            margin-right: 10px;
         }
         
-        .counter-demo .count {
-            font-size: 3rem;
-            font-weight: bold;
-            color: var(--color-success);
-            margin: 20px 0;
-        }
-        
-        .counter-demo button {
-            margin: 0 10px;
-            padding: 12px 24px;
-            font-size: 1.1rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .btn-increment {
-            background: var(--color-success);
-            color: white;
-        }
-        
-        .btn-decrement {
-            background: var(--color-danger);
-            color: white;
-        }
-        
-        .btn-reset {
-            background: var(--color-secondary);
-            color: white;
-        }
-        
-        .counter-demo button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div id="app" class="demo-app">
-        <h1>� VanillaForge Demo</h1>
-        
-        <!-- Navigation will be injected here -->
-        <nav id="navigation" class="demo-nav"></nav>
-        
-        <!-- Main content will be injected here -->
-        <main id="main-content" class="main-content">
-            <div class="loading">Loading...</div>
-        </main>
-    </div>
+    <div id="app">
+        <div id="main-content">
+            <div class="loading">
+                <div class="loading-spinner">🔥</div>
+                <div>Loading VanillaForge...</div>
+            </div>
+        </div>
+    </div>    <script type="module">
+        import { createApp } from './src/framework.js';
+        import { HomeComponent } from './src/components/home-component-fixed.js';
+        import { NotFoundComponent } from './src/components/not-found-component.js';
 
-    <script type="module">
-        import { createApp, BaseComponent } from './src/framework.js';
-
-        // Demo Navigation Component
-        class DemoNavigation extends BaseComponent {
-            constructor(props) {
-                super(props);
-                this.name = 'demo-navigation';
-            }
-            
-            render() {
-                return `
-                    <a href="/" data-route="/">Home</a>
-                    <a href="/counter" data-route="/counter">Counter Demo</a>
-                    <a href="/about" data-route="/about">About</a>
-                `;
-            }
-            
-            bindEvents() {
-                this.container.addEventListener('click', (e) => {
-                    if (e.target.dataset.route) {
-                        e.preventDefault();
-                        this.eventBus.emit('navigate', e.target.dataset.route);
+        async function initializeApp() {
+            try {
+                // Initialize the VanillaForge application
+                const app = createApp({
+                    appName: 'VanillaForge Demo',
+                    debug: true,
+                    router: {
+                        mode: 'history',
+                        fallback: '/404'
                     }
                 });
-            }
-        }
 
-        // Home Component
-        class HomeComponent extends BaseComponent {
-            constructor(props) {
-                super(props);
-                this.name = 'home-component';
-            }
-            
-            render() {
-                return `
-                    <div class="home">
-                        <h2>Welcome to the Framework Demo!</h2>
-                        <p>This is a demonstration of VanillaForge framework.</p>
-                        
-                        <div class="features">
-                            <h3>✨ Features Demonstrated:</h3>
-                            <ul>
-                                <li>🏗️ Component-based architecture</li>
-                                <li>🛣️ Client-side routing</li>
-                                <li>📡 Event-driven communication</li>
-                                <li>🎯 State management</li>
-                                <li>🔧 Zero dependencies</li>
-                            </ul>
-                        </div>
-                        
-                        <p>Navigate to <strong>Counter Demo</strong> to see interactive state management!</p>
-                    </div>
-                `;
-            }
-        }
+                // Initialize with routes and components
+                await app.initialize({
+                    routes: {
+                        '/': HomeComponent,
+                        '/home': HomeComponent,
+                        '/404': NotFoundComponent
+                    },
+                    components: {
+                        'home-component': HomeComponent,
+                        'not-found-component': NotFoundComponent
+                    }
+                });                // Start the application
+                await app.start();
 
-        // Counter Component
-        class CounterComponent extends BaseComponent {
-            constructor(props) {
-                super(props);
-                this.name = 'counter-component';
-                this.state = {
-                    count: 0
-                };
-            }
-            
-            render() {
-                return `
-                    <div class="counter-demo">
-                        <h2>Interactive Counter Demo</h2>
-                        <p>Demonstrates state management and event handling</p>
-                        
-                        <div class="count">${this.state.count}</div>
-                        
-                        <div class="controls">
-                            <button class="btn-decrement" data-action="decrement">
-                                - Decrement
+                // Development mode logging (only shown when debugging)
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    console.log('🔥 VanillaForge application started!');
+                    console.log('📖 Framework instance available at window.app');
+                    console.log('🔍 Debug tools available at window.VanillaForgeDebug');
+                    console.log('📝 Try the todo app example at examples/todo-app/index.html');
+                }
+
+                // Expose app instance for debugging
+                window.app = app;
+
+            } catch (error) {
+                console.error('Failed to initialize VanillaForge app:', error);
+                document.getElementById('main-content').innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #dc3545;">
+                        <h2>❌ Failed to Load</h2>
+                        <p>Error: ${error.message}</p>
+                        <p style="margin-top: 20px;">
+                            <button onclick="location.reload()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                Retry
                             </button>
-                            <button class="btn-reset" data-action="reset">
-                                Reset
-                            </button>
-                            <button class="btn-increment" data-action="increment">
-                                + Increment
-                            </button>
-                        </div>
-                        
-                        <p style="margin-top: 20px; font-size: 0.9rem; opacity: 0.7;">
-                            Current count: ${this.state.count} | 
-                            Status: ${this.state.count === 0 ? 'Zero' : this.state.count > 0 ? 'Positive' : 'Negative'}
                         </p>
                     </div>
                 `;
             }
-            
-            bindEvents() {
-                this.container.addEventListener('click', (e) => {
-                    const action = e.target.dataset.action;
-                    
-                    switch (action) {
-                        case 'increment':
-                            this.setState({ count: this.state.count + 1 });
-                            break;
-                        case 'decrement':
-                            this.setState({ count: this.state.count - 1 });
-                            break;
-                        case 'reset':
-                            this.setState({ count: 0 });
-                            break;
-                    }
-                });
-            }
         }
 
-        // About Component
-        class AboutComponent extends BaseComponent {
-            constructor(props) {
-                super(props);
-                this.name = 'about-component';
-            }
-            
-            render() {
-                return `
-                    <div class="about">                        <h2>About VanillaForge</h2>
-                        
-                        <p>VanillaForge was built to demonstrate modern web development patterns without external dependencies.</p>
-                        
-                        <h3>🎯 Design Goals:</h3>
-                        <ul>
-                            <li><strong>Simplicity</strong> - Easy to understand and use</li>
-                            <li><strong>Performance</strong> - Lightweight and fast</li>
-                            <li><strong>Modern</strong> - Uses latest JavaScript features</li>
-                            <li><strong>Educational</strong> - Great for learning framework concepts</li>
-                        </ul>
-                        
-                        <h3>🏗️ Architecture:</h3>
-                        <ul>
-                            <li><strong>Component Manager</strong> - Handles component lifecycle</li>
-                            <li><strong>Router</strong> - Client-side navigation</li>
-                            <li><strong>Event Bus</strong> - Component communication</li>
-                            <li><strong>State Management</strong> - Reactive state updates</li>
-                        </ul>
-                        
-                        <h3>📦 Bundle Size:</h3>
-                        <p>Less than 50KB minified - perfect for performance-conscious applications!</p>
-                    </div>
-                `;
-            }
-        }        // Create and initialize the app
-        const app = createApp({
-            appName: 'VanillaForge Demo',
-            debug: true
-        });
-
-        // Initialize with routes and components
-        await app.initialize({
-            routes: {
-                '/': HomeComponent,
-                '/counter': CounterComponent,
-                '/about': AboutComponent
-            },
-            components: {
-                'demo-navigation': DemoNavigation,
-                'home-component': HomeComponent,
-                'counter-component': CounterComponent,
-                'about-component': AboutComponent
-            }
-        });
-
-        // Load navigation component
-        const nav = new DemoNavigation({ eventBus: app.get('eventBus') });
-        await nav.mount(document.getElementById('navigation'));
-
-        // Listen for navigation events
-        app.get('eventBus').on('navigate', (path) => {
-            app.navigate(path);
-        });
-
-        // Start the application
-        await app.start();
-
-        console.log('� VanillaForge demo loaded successfully!');
-        console.log('Available routes: /, /counter, /about');
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
     </script>
 </body>
 </html>

@@ -22,14 +22,25 @@ A lightweight, powerful framework that gives you all the tools to build sophisti
 
 ```bash
 # Clone VanillaForge
-git clone https://github.com/Musyoka2020-eng/vanillaforge.git
+git clone https://github.com/your-username/vanillaforge.git
 cd vanillaforge
 
 # Install dev dependencies
 npm install
 
-# Start development
+# Start development server
 npm run dev
+```
+
+The framework will be available at http://localhost:3000
+
+### Running Examples
+
+```bash
+# Run the todo app example
+cd examples/todo-app
+npm run dev
+# Opens at http://localhost:3001
 ```
 
 ### Basic Usage

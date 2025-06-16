@@ -2,33 +2,24 @@
  * Component Manager
  * 
  * Manages component registration, loading, rendering, and lifecycle.
- * This version uses modular component files instead of inline templates.
+ * Handles component registration, instantiation, and lifecycle management.
  * 
- * @author Universal Contribution Manager Team
- * @version 3.0.0
- * @since 2025-06-14
+ * @author VanillaForge Team
+ * @version 1.0.0
+ * @since 2025-06-15
  */
 
 import { Logger } from '../utils/logger.js';
 import { ErrorHandler } from '../utils/error-handler.js';
-// Import individual components
-import { HomeComponent } from '../components/home/home-component.js';
-import { LoginComponent } from '../components/auth/login-component.js';
-import { RegisterComponent } from '../components/auth/register-component.js';
-import { DashboardComponent } from '../components/dashboard/dashboard-component.js';
-import { NotFoundComponent } from '../components/not-found-component.js';
-import { NavigationComponent } from '../components/navigation-component.js';
 
 export class ComponentManager {
   /**
    * Initialize component manager
    * 
    * @param {EventBus} eventBus - Application event bus
-   * @param {AuthService} authService - Authentication service
    */
-  constructor(eventBus, authService = null) {
+  constructor(eventBus) {
     this.eventBus = eventBus;
-    this.authService = authService;
     this.logger = new Logger('ComponentManager');
     this.errorHandler = new ErrorHandler();
     
@@ -41,7 +32,6 @@ export class ComponentManager {
     
     this.logger.debug('ComponentManager instance created');
   }
-
   /**
    * Initialize the component manager
    * 
@@ -67,20 +57,21 @@ export class ComponentManager {
   }
 
   /**
+   * Alias for init() to maintain compatibility with FrameworkApp
+   */
+  async initialize() {
+    return this.init();
+  }  /**
    * Register built-in components
    * 
    * @private
-   */  registerBuiltInComponents() {
+   */    registerBuiltInComponents() {
     this.logger.debug('Registering built-in components...');
-      // Register components with their classes
-    this.registerComponent('home-component', HomeComponent);
-    this.registerComponent('login-component', LoginComponent);
-    this.registerComponent('register-component', RegisterComponent);
-    this.registerComponent('dashboard-component', DashboardComponent);
-    this.registerComponent('not-found-component', NotFoundComponent);
-    this.registerComponent('navigation-component', NavigationComponent);
     
-    this.logger.debug(`Registered ${this.components.size} built-in components`);
+    // Built-in components will be registered externally via app.initialize()
+    // to avoid circular import dependencies
+    
+    this.logger.debug(`Built-in components ready for external registration`);
   }
 
   /**
@@ -152,18 +143,46 @@ export class ComponentManager {
   }
 
   /**
+   * Load a component by class directly (for router use)
+   * 
+   * @param {Function} ComponentClass - Component class constructor
+   * @param {Object} props - Component props
+   * @param {string} containerId - Target container ID
+   * @returns {Promise<Object>} Component instance
+   */
+  async loadComponentClass(ComponentClass, props = {}, containerId = 'main-content') {
+    try {
+      this.logger.debug(`Loading component class: ${ComponentClass.name}`);
+      
+      // Get container
+      const container = document.getElementById(containerId);
+      if (!container) {
+        throw new Error(`Container not found: ${containerId}`);
+      }
+
+      // Use the same loading logic as _doLoadComponent
+      const componentName = ComponentClass.name || 'UnknownComponent';
+      const result = await this._doLoadComponent(componentName, props, containerId, ComponentClass, container);
+      
+      this.logger.info(`Component class loaded successfully: ${ComponentClass.name}`);
+      return result;
+      
+    } catch (error) {
+      this.logger.error(`Failed to load component class: ${ComponentClass.name}`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Internal method to actually load the component
    * 
    * @private
    */  async _doLoadComponent(componentName, props, containerId, ComponentClass, container) {
     // Clear container
     container.innerHTML = '';
-    
-    // Add AuthService to props for auth components
+      // Add props to component instance 
     const componentProps = { 
-      ...props, 
-      autoRender: false,
-      authService: this.authService 
+      ...props
     };
     
     // Create component instance with autoRender disabled since we'll handle rendering manually
@@ -186,10 +205,10 @@ export class ComponentManager {
     element.innerHTML = template;
     
     // Set up component methods and event listeners
-    this.setupComponentMethods(instance);
-    
-    // Call lifecycle onMount
+    this.setupComponentMethods(instance);    // Call lifecycle onMount
     if (instance.getLifecycle && instance.getLifecycle().onMount) {
+      // Ensure element is properly connected to DOM before calling onMount
+      await new Promise(resolve => setTimeout(resolve, 10));
       await instance.getLifecycle().onMount.call(instance);
     }
       // Store active instance
@@ -351,14 +370,20 @@ export class ComponentManager {
         this.logger.error('Failed to load requested component', error);
         this.eventBus.emit('component:error', { error, componentName: name });
       }
-    });
-    
-    // Listen for router component load requests
+    });    // Listen for router component load requests
     this.eventBus.on('router:load-component', async ({ component, route }) => {
       try {
-        this.logger.debug(`Router requesting component load: ${component}`);
-        await this.loadComponent(component, { route }, 'main-content');
-        this.logger.info(`Component loaded successfully: ${component}`);
+        if (typeof component === 'string') {
+          // Component name - load by name
+          await this.loadComponent(component, { route }, 'main-content');
+        } else if (typeof component === 'function') {
+          // Component class - load directly
+          await this.loadComponentClass(component, { route }, 'main-content');
+        } else {
+          throw new Error(`Invalid component type: ${typeof component}`);
+        }
+        
+        this.logger.info(`Component loaded successfully: ${component.name || component}`);
       } catch (error) {
         this.logger.error('Failed to load router component', error);
         this.eventBus.emit('component:error', { error, componentName: component });

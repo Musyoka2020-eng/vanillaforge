@@ -116,13 +116,12 @@ export class Logger {
     const style = `color: ${color}; font-weight: bold;`;
     
     if (logEntry.data) {
-      console[consoleMethod](prefix, style, logEntry.message, logEntry.data);
-    } else {
+      console[consoleMethod](prefix, style, logEntry.message, logEntry.data);    } else {
       console[consoleMethod](prefix, style, logEntry.message);
     }
     
-    // Also log the full structured data for debugging
-    if (level === LogLevel.DEBUG) {
+    // Only log full structured data in development mode
+    if (level === LogLevel.DEBUG && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
       console.debug('Full log entry:', logEntry);
     }
   }

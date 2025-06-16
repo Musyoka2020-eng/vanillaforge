@@ -3,9 +3,9 @@
  * 
  * 404 error page component
  * 
- * @author Universal Contribution Manager Team
- * @version 3.0.0
- * @since 2025-06-14
+ * @author VanillaForge Team
+ * @version 1.0.0
+ * @since 2025-06-15
  */
 
 import { BaseComponent } from './base-component.js';

@@ -14,10 +14,7 @@
  */
 function waitForSwal() {
   return new Promise((resolve, reject) => {
-    console.log('Waiting for SweetAlert2 to load...');
-    
     if (typeof window.Swal !== 'undefined') {
-      console.log('SweetAlert2 is already available');
       resolve();
       return;
     }
@@ -27,13 +24,10 @@ function waitForSwal() {
     
     const checkSwal = () => {
       attempts++;
-      console.log(`Checking for SweetAlert2, attempt ${attempts}/${maxAttempts}`);
       
       if (typeof window.Swal !== 'undefined') {
-        console.log('SweetAlert2 loaded successfully');
         resolve();
       } else if (attempts >= maxAttempts) {
-        console.error('SweetAlert2 failed to load after 5 seconds');
         reject(new Error('SweetAlert2 failed to load'));
       } else {
         setTimeout(checkSwal, 100);
@@ -49,7 +43,6 @@ function waitForSwal() {
  */
 export class SweetAlert {  static async fire(options) {
     try {
-      console.log('SweetAlert.fire called with options:', options);
       await waitForSwal();
       
       // Default styling for the app
@@ -69,10 +62,8 @@ export class SweetAlert {  static async fire(options) {
         ...options
       });
       
-      console.log('SweetAlert dialog opened successfully');
       return result;
     } catch (error) {
-      console.error('Error in SweetAlert.fire:', error);
       // Fallback: use browser alert
       alert(`${options.title || 'Alert'}: ${options.text || ''}`);
       return { isConfirmed: true };

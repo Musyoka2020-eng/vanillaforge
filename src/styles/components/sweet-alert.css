@@ -1,0 +1,190 @@
+/**
+ * Sweet Alert Component Styles
+ * 
+ * Styles for the SweetAlert notification system
+ * 
+ * @author VanillaForge Team
+ * @version 1.0.0
+ * @since 2025-06-16
+ */
+
+/* Sweet Alert Modal */
+.sweet-alert-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sweet-alert-overlay.show {
+    opacity: 1;
+}
+
+.sweet-alert {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    transform: scale(0.8);
+    transition: transform 0.3s ease;
+}
+
+.sweet-alert-overlay.show .sweet-alert {
+    transform: scale(1);
+}
+
+.sweet-alert-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.sweet-alert-icon.success {
+    color: #28a745;
+}
+
+.sweet-alert-icon.error {
+    color: #dc3545;
+}
+
+.sweet-alert-icon.warning {
+    color: #ffc107;
+}
+
+.sweet-alert-icon.info {
+    color: #17a2b8;
+}
+
+.sweet-alert-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.sweet-alert-text {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.sweet-alert-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.sweet-alert-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    min-width: 80px;
+}
+
+.sweet-alert-button.confirm {
+    background-color: #007bff;
+    color: white;
+}
+
+.sweet-alert-button.confirm:hover {
+    background-color: #0056b3;
+}
+
+.sweet-alert-button.cancel {
+    background-color: #6c757d;
+    color: white;
+}
+
+.sweet-alert-button.cancel:hover {
+    background-color: #545b62;
+}
+
+.sweet-alert-button.success {
+    background-color: #28a745;
+    color: white;
+}
+
+.sweet-alert-button.success:hover {
+    background-color: #1e7e34;
+}
+
+.sweet-alert-button.danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.sweet-alert-button.danger:hover {
+    background-color: #c82333;
+}
+
+.sweet-alert-button.warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.sweet-alert-button.warning:hover {
+    background-color: #e0a800;
+}
+
+/* Toast notifications */
+.sweet-alert-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 16px 20px;
+    max-width: 300px;
+    z-index: 10000;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+}
+
+.sweet-alert-toast.show {
+    transform: translateX(0);
+}
+
+.sweet-alert-toast.success {
+    border-left: 4px solid #28a745;
+}
+
+.sweet-alert-toast.error {
+    border-left: 4px solid #dc3545;
+}
+
+.sweet-alert-toast.warning {
+    border-left: 4px solid #ffc107;
+}
+
+.sweet-alert-toast.info {
+    border-left: 4px solid #17a2b8;
+}
+
+.sweet-alert-toast .toast-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.sweet-alert-toast .toast-message {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.4;
+}

@@ -1,11 +1,11 @@
 /**
  * Framework Debug Utility
  * 
- * Debugging utilities for the Universal Contribution Manager framework.
+ * Debugging utilities for the VanillaForge framework.
  * Provides insights into component state, event bus activity, and performance.
  * 
- * @author Universal Contribution Manager Team
- * @version 3.0.0
+ * @author VanillaForge Team
+ * @version 1.0.0
  * @since 2025-06-15
  */
 
@@ -26,20 +26,22 @@ export class FrameworkDebug {
 
   /**
    * Enable debug mode
-   */
-  enable() {
+   */  enable() {
     this.isEnabled = true;
     
     // Enable event bus debug mode
     if (this.app.eventBus) {
       this.app.eventBus.setDebugMode(true);
     }
-    
-    // Add debug tools to window for console access
-    window.UCMDebug = this;
+      // Add debug tools to window for console access
+    window.VanillaForgeDebug = this;
     
     this.logger.info('🔍 Framework debug mode enabled');
-    console.log('🔍 UCM Debug mode enabled. Access via window.UCMDebug');
+    
+    // Only show console message in development
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      console.log('🔍 VanillaForge Debug mode enabled. Access via window.VanillaForgeDebug');
+    }
   }
 
   /**
@@ -52,9 +54,8 @@ export class FrameworkDebug {
     if (this.app.eventBus) {
       this.app.eventBus.setDebugMode(false);
     }
-    
-    // Remove debug tools from window
-    delete window.UCMDebug;
+      // Remove debug tools from window
+    delete window.VanillaForgeDebug;
     
     this.logger.info('Framework debug mode disabled');
   }
@@ -183,32 +184,34 @@ export class FrameworkDebug {
       this.logger.warn(`Failed to measure performance: ${name}`, error);
     }
   }
-
   /**
    * Log detailed framework state
    */
   logFrameworkState() {
-    console.group('🔍 UCM Framework State');
+    const stats = {
+      components: this.getComponentStats(),
+      eventBus: this.getEventBusStats(),
+      router: this.getRouterInfo(),
+      errors: this.getErrorStats(),
+      performance: this.getPerformanceInfo()
+    };
     
-    console.log('📊 Component Stats:', this.getComponentStats());
-    console.log('📡 Event Bus Stats:', this.getEventBusStats());
-    console.log('🧭 Router Info:', this.getRouterInfo());
-    console.log('⚠️ Error Stats:', this.getErrorStats());
-    console.log('⚡ Performance Info:', this.getPerformanceInfo());
-    
+    console.group('🔍 VanillaForge Framework State');
+    console.table(stats);
     console.groupEnd();
+    
+    return stats;
   }
 
   /**
    * Simulate component stress test
-   */
-  async stressTestComponents(iterations = 10) {
+   */  async stressTestComponents(iterations = 10) {
     if (!this.isEnabled) {
       console.warn('Debug mode must be enabled for stress testing');
       return;
     }
 
-    console.log(`🧪 Starting component stress test (${iterations} iterations)`);
+    this.logger.info(`Starting component stress test (${iterations} iterations)`);
     
     const startTime = performance.now();
     const results = {
@@ -241,14 +244,13 @@ export class FrameworkDebug {
 
   /**
    * Test event bus performance
-   */
-  testEventBusPerformance(eventCount = 1000) {
+   */  testEventBusPerformance(eventCount = 1000) {
     if (!this.isEnabled) {
       console.warn('Debug mode must be enabled for performance testing');
       return;
     }
 
-    console.log(`📡 Testing event bus performance (${eventCount} events)`);
+    this.logger.info(`Testing event bus performance (${eventCount} events)`);
     
     const startTime = performance.now();
     
@@ -281,8 +283,7 @@ export class FrameworkDebug {
 
   /**
    * Monitor memory usage over time
-   */
-  startMemoryMonitoring(interval = 5000) {
+   */  startMemoryMonitoring(interval = 5000) {
     if (!this.isEnabled) {
       console.warn('Debug mode must be enabled for memory monitoring');
       return;
@@ -292,12 +293,12 @@ export class FrameworkDebug {
       clearInterval(this.memoryMonitor);
     }
 
-    console.log(`💾 Starting memory monitoring (${interval}ms interval)`);
+    this.logger.info(`Starting memory monitoring (${interval}ms interval)`);
     
     this.memoryMonitor = setInterval(() => {
       const memory = this.getPerformanceInfo().memory;
       if (memory) {
-        console.log('💾 Memory usage:', {
+        this.logger.debug('Memory usage:', {
           used: Math.round(memory.usedJSHeapSize / 1024 / 1024) + ' MB',
           total: Math.round(memory.totalJSHeapSize / 1024 / 1024) + ' MB',
           limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024) + ' MB'
@@ -315,19 +316,18 @@ export class FrameworkDebug {
     if (this.memoryMonitor) {
       clearInterval(this.memoryMonitor);
       this.memoryMonitor = null;
-      console.log('💾 Memory monitoring stopped');
+      this.logger.info('Memory monitoring stopped');
     }
   }
 
   /**
    * Get framework health check
-   */
-  healthCheck() {
+   */  healthCheck() {
     const health = {
       timestamp: new Date().toISOString(),
       framework: {
         initialized: !!this.app.isInitialized,
-        version: '3.0.0'
+        version: '1.0.0'
       },
       components: {
         managerInitialized: !!this.app.componentManager?.isInitialized,
@@ -345,12 +345,16 @@ export class FrameworkDebug {
       errors: this.getErrorStats()
     };
 
-    console.log('🏥 Framework Health Check:', health);
+    // Only log to console in development mode
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      console.log('🏥 Framework Health Check:', health);
+    }
+    
     return health;
   }
 }
 
 // Auto-expose in development
 if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-  window.UCMFrameworkDebug = FrameworkDebug;
+  window.VanillaForgeDebug = FrameworkDebug;
 }

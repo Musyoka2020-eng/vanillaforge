@@ -32,7 +32,8 @@ const buildConfig = {
         'package.json'
     ],    cssFiles: [
         'src/styles/main.css',
-        'src/styles/components.css'
+        'src/styles/components.css',
+        'src/styles/components/sweet-alert.css'
     ],
     minify: process.env.NODE_ENV === 'production',
     sourceMaps: process.env.NODE_ENV !== 'production'

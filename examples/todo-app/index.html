@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App - VanillaForge Example</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .todo-app {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .todo-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .todo-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .todo-header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .todo-content {
+            padding: 30px;
+        }
+
+        .todo-input-section {
+            margin-bottom: 30px;
+        }
+
+        .todo-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .todo-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .todo-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .todo-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .todo-stats {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            color: #1565c0;
+        }
+
+        .todo-list {
+            list-style: none;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .todo-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .todo-item.completed {
+            opacity: 0.6;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+        }
+
+        .todo-checkbox {
+            margin-right: 15px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .todo-text {
+            flex: 1;
+            font-size: 16px;
+        }
+
+        .todo-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .todo-input-group {
+                flex-direction: column;
+            }
+            
+            .todo-filters {
+                flex-direction: column;
+            }
+            
+            .todo-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .todo-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script type="module">
+        import { createApp, BaseComponent } from '../../src/framework.js';
+
+        class TodoApp extends BaseComponent {
+            constructor(eventBus, props) {
+                super(eventBus, props);
+                this.name = 'todo-app';
+                this.state = {
+                    todos: this.loadTodos(),
+                    newTodo: '',
+                    filter: 'all' // all, active, completed
+                };
+            }
+
+            loadTodos() {
+                try {
+                    const saved = localStorage.getItem('vanillaforge-todos');
+                    return saved ? JSON.parse(saved) : [];
+                } catch (error) {
+                    console.warn('Failed to load todos from localStorage:', error);
+                    return [];
+                }
+            }
+
+            saveTodos() {
+                try {
+                    localStorage.setItem('vanillaforge-todos', JSON.stringify(this.state.todos));
+                } catch (error) {
+                    console.warn('Failed to save todos to localStorage:', error);
+                }
+            }
+
+            getTemplate() {
+                const filteredTodos = this.getFilteredTodos();
+                const stats = this.getTodoStats();
+
+                return `
+                    <div class="todo-app">
+                        <div class="todo-header">
+                            <h1>📝 Todo App</h1>
+                            <p>Built with VanillaForge Framework</p>
+                        </div>
+                        
+                        <div class="todo-content">
+                            <div class="todo-input-section">
+                                <div class="todo-input-group">
+                                    <input 
+                                        type="text" 
+                                        class="todo-input" 
+                                        placeholder="What needs to be done?"
+                                        value="${this.state.newTodo}"
+                                        data-input="newTodo"
+                                    >
+                                    <button class="btn btn-primary" data-action="addTodo">
+                                        Add Todo
+                                    </button>
+                                </div>
+                            </div>
+
+                            ${stats.total > 0 ? `
+                                <div class="todo-stats">
+                                    <strong>Stats:</strong> 
+                                    ${stats.total} total, 
+                                    ${stats.active} active, 
+                                    ${stats.completed} completed
+                                </div>
+
+                                <div class="todo-filters">
+                                    <button class="btn ${this.state.filter === 'all' ? 'btn-primary' : 'btn-secondary'} btn-sm" 
+                                            data-action="setFilter" data-filter="all">
+                                        All (${stats.total})
+                                    </button>
+                                    <button class="btn ${this.state.filter === 'active' ? 'btn-primary' : 'btn-secondary'} btn-sm" 
+                                            data-action="setFilter" data-filter="active">
+                                        Active (${stats.active})
+                                    </button>
+                                    <button class="btn ${this.state.filter === 'completed' ? 'btn-primary' : 'btn-secondary'} btn-sm" 
+                                            data-action="setFilter" data-filter="completed">
+                                        Completed (${stats.completed})
+                                    </button>
+                                    ${stats.completed > 0 ? `
+                                        <button class="btn btn-danger btn-sm" data-action="clearCompleted">
+                                            Clear Completed
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
+
+                            ${filteredTodos.length > 0 ? `
+                                <ul class="todo-list">
+                                    ${filteredTodos.map((todo, index) => `
+                                        <li class="todo-item ${todo.completed ? 'completed' : ''}">
+                                            <input 
+                                                type="checkbox" 
+                                                class="todo-checkbox"
+                                                ${todo.completed ? 'checked' : ''}
+                                                data-action="toggleTodo" 
+                                                data-id="${todo.id}"
+                                            >
+                                            <span class="todo-text">${this.escapeHtml(todo.text)}</span>
+                                            <div class="todo-actions">
+                                                <button class="btn btn-secondary btn-sm" 
+                                                        data-action="editTodo" data-id="${todo.id}">
+                                                    Edit
+                                                </button>
+                                                <button class="btn btn-danger btn-sm" 
+                                                        data-action="deleteTodo" data-id="${todo.id}">
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            ` : `
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">${this.state.filter === 'completed' ? '🎉' : '📝'}</div>
+                                    <h3>${this.getEmptyMessage()}</h3>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }
+
+            getFilteredTodos() {
+                switch (this.state.filter) {
+                    case 'active':
+                        return this.state.todos.filter(todo => !todo.completed);
+                    case 'completed':
+                        return this.state.todos.filter(todo => todo.completed);
+                    default:
+                        return this.state.todos;
+                }
+            }
+
+            getTodoStats() {
+                return {
+                    total: this.state.todos.length,
+                    active: this.state.todos.filter(todo => !todo.completed).length,
+                    completed: this.state.todos.filter(todo => todo.completed).length
+                };
+            }
+
+            getEmptyMessage() {
+                switch (this.state.filter) {
+                    case 'active':
+                        return 'No active todos! 🎉';
+                    case 'completed':
+                        return 'No completed todos yet';
+                    default:
+                        return this.state.todos.length === 0 
+                            ? 'No todos yet. Add one above!' 
+                            : 'No todos match the current filter';
+                }
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            getMethods() {
+                return {
+                    addTodo: () => {
+                        const text = this.state.newTodo.trim();
+                        if (text) {
+                            const newTodo = {
+                                id: Date.now(),
+                                text: text,
+                                completed: false,
+                                createdAt: new Date().toISOString()
+                            };
+                            
+                            this.setState({ 
+                                todos: [...this.state.todos, newTodo],
+                                newTodo: ''
+                            });
+                            this.saveTodos();
+                        }
+                    },
+
+                    toggleTodo: (e) => {
+                        const id = parseInt(e.target.dataset.id);
+                        const updatedTodos = this.state.todos.map(todo =>
+                            todo.id === id ? { ...todo, completed: !todo.completed } : todo
+                        );
+                        
+                        this.setState({ todos: updatedTodos });
+                        this.saveTodos();
+                    },
+
+                    deleteTodo: (e) => {
+                        const id = parseInt(e.target.dataset.id);
+                        const updatedTodos = this.state.todos.filter(todo => todo.id !== id);
+                        
+                        this.setState({ todos: updatedTodos });
+                        this.saveTodos();
+                    },
+
+                    editTodo: (e) => {
+                        const id = parseInt(e.target.dataset.id);
+                        const todo = this.state.todos.find(todo => todo.id === id);
+                        
+                        if (todo) {
+                            const newText = prompt('Edit todo:', todo.text);
+                            if (newText && newText.trim() !== todo.text) {
+                                const updatedTodos = this.state.todos.map(t =>
+                                    t.id === id ? { ...t, text: newText.trim() } : t
+                                );
+                                
+                                this.setState({ todos: updatedTodos });
+                                this.saveTodos();
+                            }
+                        }
+                    },
+
+                    setFilter: (e) => {
+                        const filter = e.target.dataset.filter;
+                        this.setState({ filter });
+                    },
+
+                    clearCompleted: () => {
+                        const updatedTodos = this.state.todos.filter(todo => !todo.completed);
+                        this.setState({ todos: updatedTodos });
+                        this.saveTodos();
+                    },
+
+                    handleInput: (e) => {
+                        const inputName = e.target.dataset.input;
+                        if (inputName === 'newTodo') {
+                            this.setState({ newTodo: e.target.value });
+                        }
+                    },
+
+                    handleKeyDown: (e) => {
+                        if (e.key === 'Enter' && e.target.dataset.input === 'newTodo') {
+                            this.getMethods().addTodo();
+                        }
+                    }
+                };
+            }
+
+            getLifecycle() {
+                return {
+                    onMount: async () => {
+                        this.logger.info('Todo app mounted');
+                        
+                        if (this.element) {
+                            const methods = this.getMethods();
+                            
+                            // Handle clicks
+                            this.element.addEventListener('click', (e) => {
+                                const action = e.target.dataset.action;
+                                if (methods[action]) {
+                                    methods[action](e);
+                                }
+                            });
+                            
+                            // Handle input changes
+                            this.element.addEventListener('input', methods.handleInput);
+                            
+                            // Handle enter key
+                            this.element.addEventListener('keydown', methods.handleKeyDown);
+                        }
+                    },
+                    
+                    onUnmount: () => {
+                        this.logger.info('Todo app unmounted');
+                    }
+                };
+            }
+        }
+
+        // Initialize the app
+        const app = createApp({ 
+            appName: 'VanillaForge Todo App',
+            debug: true 
+        });
+
+        await app.initialize({
+            routes: { 
+                '/': TodoApp,
+                '/todos': TodoApp
+            },
+            components: { 
+                'todo-app': TodoApp 
+            }
+        });
+
+        await app.start();
+    </script>
+</body>
+</html>
