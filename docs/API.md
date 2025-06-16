@@ -9,6 +9,16 @@ Complete API documentation for VanillaForge framework.
 - [Routing](#routing)
 - [Event System](#event-system)
 - [Utilities](#utilities)
+  - [Logger](#logger)
+  - [ErrorHandler](#errorhandler)
+  - [ValidationUtils](#validationutils)
+  - [PerformanceUtils](#performanceutils)
+  - [SweetAlert](#sweetalert)
+  - [ComponentManager](#componentmanager)
+  - [FrameworkDebug](#frameworkdebug)
+- [Framework Constants](#framework-constants)
+- [Event Types](#event-types)
+- [Error Types](#error-types)
 
 ## Framework Core
 
@@ -551,6 +561,526 @@ Validate required field.
 const result = ValidationUtils.validateRequired(userInput, 'username');
 ```
 
+### PerformanceUtils
+
+Performance optimization utilities for better application performance.
+
+#### Methods
+
+##### debounce(func, wait, immediate)
+
+Debounce function execution to limit how often it can be called.
+
+**Parameters:**
+- `func` (Function) - Function to debounce
+- `wait` (Number) - Delay in milliseconds
+- `immediate` (Boolean) - Execute immediately on first call
+
+**Returns:** Function (debounced function)
+
+**Example:**
+```javascript
+const performanceUtils = app.get('performanceUtils');
+const debouncedSearch = performanceUtils.debounce((query) => {
+    searchAPI(query);
+}, 300);
+```
+
+##### throttle(func, limit)
+
+Throttle function execution to ensure minimum time between calls.
+
+**Parameters:**
+- `func` (Function) - Function to throttle
+- `limit` (Number) - Minimum time between executions in milliseconds
+
+**Returns:** Function (throttled function)
+
+**Example:**
+```javascript
+const throttledResize = performanceUtils.throttle(() => {
+    handleWindowResize();
+}, 100);
+```
+
+### PerformanceUtils
+
+Performance optimization utilities for better application performance.
+
+#### Methods
+
+##### debounce(func, wait, immediate)
+
+Debounce function execution to limit how often it can be called.
+
+**Parameters:**
+- `func` (Function) - Function to debounce
+- `wait` (Number) - Delay in milliseconds
+- `immediate` (Boolean) - Execute immediately on first call
+
+**Returns:** Function (debounced function)
+
+**Example:**
+```javascript
+const performanceUtils = app.get('performanceUtils');
+const debouncedSearch = performanceUtils.debounce((query) => {
+    searchAPI(query);
+}, 300);
+```
+
+##### throttle(func, limit)
+
+Throttle function execution to ensure minimum time between calls.
+
+**Parameters:**
+- `func` (Function) - Function to throttle
+- `limit` (Number) - Minimum time between executions in milliseconds
+
+**Returns:** Function (throttled function)
+
+**Example:**
+```javascript
+const throttledResize = performanceUtils.throttle(() => {
+    handleWindowResize();
+}, 100);
+```
+
+##### setCache(key, data, ttl)
+
+Cache data with optional time-to-live.
+
+**Parameters:**
+- `key` (String) - Cache key
+- `data` (Any) - Data to cache
+- `ttl` (Number) - Time to live in milliseconds (default: 5 minutes)
+
+**Example:**
+```javascript
+performanceUtils.setCache('user-data', userData, 60000); // Cache for 1 minute
+```
+
+##### getCache(key)
+
+Get cached data by key.
+
+**Parameters:**
+- `key` (String) - Cache key
+
+**Returns:** Cached data or null if expired/not found
+
+**Example:**
+```javascript
+const userData = performanceUtils.getCache('user-data');
+if (userData) {
+    displayUser(userData);
+} else {
+    fetchUserFromAPI();
+}
+```
+
+##### clearExpiredCache()
+
+Clear all expired cache entries.
+
+**Example:**
+```javascript
+performanceUtils.clearExpiredCache();
+```
+
+##### measure(func, label)
+
+Measure function execution time.
+
+**Parameters:**
+- `func` (Function) - Function to measure
+- `label` (String) - Label for the measurement
+
+**Returns:** Function result (supports async functions)
+
+**Example:**
+```javascript
+const result = performanceUtils.measure(() => {
+    return expensiveCalculation();
+}, 'Expensive Calculation');
+```
+
+##### batchDOMOperations(operations)
+
+Batch DOM operations to avoid layout thrashing.
+
+**Parameters:**
+- `operations` (Function[]) - Array of DOM operations
+
+**Example:**
+```javascript
+performanceUtils.batchDOMOperations([
+    () => element1.style.height = '100px',
+    () => element2.style.width = '200px',
+    () => element3.classList.add('visible')
+]);
+```
+
+##### async preloadResources(urls, type)
+
+Preload resources for better performance.
+
+**Parameters:**
+- `urls` (String[]) - Array of resource URLs
+- `type` (String) - Resource type ('image', 'script', 'style')
+
+**Returns:** Promise that resolves when all resources are loaded
+
+**Example:**
+```javascript
+await performanceUtils.preloadResources([
+    '/images/hero.jpg',
+    '/images/background.png'
+], 'image');
+```
+
+##### optimizeImage(img, sizes)
+
+Optimize images for different screen sizes.
+
+**Parameters:**
+- `img` (HTMLImageElement) - Image element to optimize
+- `sizes` (Object) - Size configuration for responsive images
+
+**Returns:** HTMLPictureElement with responsive sources
+
+##### monitorMemory(callback, interval)
+
+Monitor memory usage (Chrome only).
+
+**Parameters:**
+- `callback` (Function) - Callback to receive memory stats
+- `interval` (Number) - Monitoring interval in milliseconds
+
+**Returns:** Interval ID or null if not supported
+
+**Example:**
+```javascript
+const monitorId = performanceUtils.monitorMemory((memory) => {
+    console.log(`Memory used: ${memory.used}MB/${memory.total}MB`);
+}, 5000);
+```
+
+##### mark(name)
+
+Create a performance mark.
+
+**Parameters:**
+- `name` (String) - Mark name
+
+##### measureBetween(name, startMark, endMark)
+
+Measure performance between two marks.
+
+**Parameters:**
+- `name` (String) - Measure name
+- `startMark` (String) - Start mark name
+- `endMark` (String) - End mark name
+
+##### getPerformanceEntries(type)
+
+Get performance entries by type.
+
+**Parameters:**
+- `type` (String) - Entry type (mark, measure, navigation, etc.)
+
+**Returns:** Array of performance entries
+
+##### cleanup()
+
+Cleanup observers and cached resources.
+
+#### Decorators
+
+##### @perf(label)
+
+Performance measurement decorator for methods.
+
+**Parameters:**
+- `label` (String) - Optional performance label
+
+**Example:**
+```javascript
+class MyComponent {
+    @perf('Heavy calculation')
+    heavyMethod() {
+        // Method execution time will be logged
+    }
+}
+```
+
+##### @cache(ttl)
+
+Caching decorator for methods.
+
+**Parameters:**
+- `ttl` (Number) - Time to live in milliseconds
+
+**Example:**
+```javascript
+class DataService {
+    @cache(60000) // Cache for 1 minute
+    async fetchData(id) {
+        // Results will be cached
+        return await api.get(`/data/${id}`);
+    }
+}
+```
+
+### SweetAlert
+
+Beautiful, responsive alert dialogs with consistent styling.
+
+#### Static Methods
+
+##### static async fire(options)
+
+Display a custom alert dialog.
+
+**Parameters:**
+- `options` (Object) - SweetAlert2 options
+
+**Returns:** Promise that resolves to result object
+
+**Example:**
+```javascript
+const result = await SweetAlert.fire({
+    title: 'Are you sure?',
+    text: 'This action cannot be undone',
+    icon: 'warning',
+    showCancelButton: true
+});
+```
+
+##### static async success(title, text, options)
+
+Display a success alert.
+
+**Parameters:**
+- `title` (String) - Alert title
+- `text` (String) - Alert text
+- `options` (Object) - Additional options
+
+**Example:**
+```javascript
+await SweetAlert.success('Success!', 'Your data has been saved');
+```
+
+##### static async error(title, text, options)
+
+Display an error alert.
+
+**Example:**
+```javascript
+await SweetAlert.error('Error!', 'Something went wrong');
+```
+
+##### static async warning(title, text, options)
+
+Display a warning alert.
+
+##### static async info(title, text, options)
+
+Display an info alert.
+
+##### static async confirm(title, text, options)
+
+Display a confirmation dialog.
+
+**Returns:** Promise that resolves to boolean
+
+**Example:**
+```javascript
+const confirmed = await SweetAlert.confirm(
+    'Delete Item',
+    'Are you sure you want to delete this item?'
+);
+if (confirmed) {
+    deleteItem();
+}
+```
+
+### ComponentManager
+
+Manages component registration, loading, and lifecycle.
+
+#### Methods
+
+##### registerComponent(name, ComponentClass)
+
+Register a component class with a name.
+
+**Parameters:**
+- `name` (String) - Component name
+- `ComponentClass` (Class) - Component class that extends BaseComponent
+
+**Example:**
+```javascript
+const componentManager = app.get('componentManager');
+componentManager.registerComponent('user-profile', UserProfileComponent);
+```
+
+##### async loadComponent(componentName, props, containerId)
+
+Load and render a component in a container.
+
+**Parameters:**
+- `componentName` (String) - Name of registered component
+- `props` (Object) - Props to pass to component
+- `containerId` (String) - ID of container element (default: 'main-content')
+
+**Returns:** Promise that resolves to component instance
+
+**Example:**
+```javascript
+const component = await componentManager.loadComponent(
+    'user-profile', 
+    { userId: 123 }, 
+    'sidebar'
+);
+```
+
+### ComponentManager
+
+Manages component registration, loading, and lifecycle.
+
+#### Methods
+
+##### registerComponent(name, ComponentClass)
+
+Register a component class with a name.
+
+**Parameters:**
+- `name` (String) - Component name
+- `ComponentClass` (Class) - Component class that extends BaseComponent
+
+**Example:**
+```javascript
+const componentManager = app.get('componentManager');
+componentManager.registerComponent('user-profile', UserProfileComponent);
+```
+
+##### async loadComponent(componentName, props, containerId)
+
+Load and render a component by name in a container.
+
+**Parameters:**
+- `componentName` (String) - Name of registered component
+- `props` (Object) - Props to pass to component
+- `containerId` (String) - ID of container element (default: 'main-content')
+
+**Returns:** Promise that resolves to component instance
+
+**Example:**
+```javascript
+const component = await componentManager.loadComponent(
+    'user-profile', 
+    { userId: 123 }, 
+    'sidebar'
+);
+```
+
+##### async loadComponentClass(ComponentClass, props, containerId)
+
+Load and render a component class directly in a container.
+
+**Parameters:**
+- `ComponentClass` (Class) - Component class to load
+- `props` (Object) - Props to pass to component
+- `containerId` (String) - ID of container element (default: 'main-content')
+
+**Returns:** Promise that resolves to component instance
+
+**Example:**
+```javascript
+const component = await componentManager.loadComponentClass(
+    UserProfileComponent, 
+    { userId: 123 }, 
+    'main-content'
+);
+```
+
+##### getComponent(name)
+
+Get a registered component class by name.
+
+**Parameters:**
+- `name` (String) - Component name
+
+**Returns:** Component class or undefined
+
+**Example:**
+```javascript
+const UserComponent = componentManager.getComponent('user-profile');
+```
+
+##### getActiveComponent(containerId)
+
+Get the currently active component in a container.
+
+**Parameters:**
+- `containerId` (String) - Container ID
+
+**Returns:** Component instance or undefined
+
+**Example:**
+```javascript
+const activeComponent = componentManager.getActiveComponent('main-content');
+```
+
+##### getActiveComponents()
+
+Get all active components.
+
+**Returns:** Map of active components (ID → instance)
+
+**Example:**
+```javascript
+const activeComponents = componentManager.getActiveComponents();
+activeComponents.forEach((component, id) => {
+    console.log(`Component ${id}: ${component.name}`);
+});
+```
+
+##### getRegisteredComponents()
+
+Get list of all registered component names.
+
+**Returns:** Array of component names
+
+**Example:**
+```javascript
+const componentNames = componentManager.getRegisteredComponents();
+console.log('Available components:', componentNames);
+```
+
+##### async unloadComponent(componentId)
+
+Unload a specific component instance.
+
+**Parameters:**
+- `componentId` (String) - Component instance ID
+
+**Returns:** Promise that resolves to boolean (success status)
+
+**Example:**
+```javascript
+await componentManager.unloadComponent('user-profile-123');
+```
+
+##### async cleanup()
+
+Clean up all components and reset the manager.
+
+**Example:**
+```javascript
+await componentManager.cleanup();
+```
+
 ### FrameworkDebug
 
 Development debugging utilities (only available in debug mode).
@@ -593,6 +1123,32 @@ window.VanillaForgeDebug.getRouterInfo();
 
 // Check event bus
 window.VanillaForgeDebug.getEventBusInfo();
+```
+
+## Framework Constants
+
+### FRAMEWORK_VERSION
+
+Current version of the VanillaForge framework.
+
+**Type:** String
+
+**Example:**
+```javascript
+import { FRAMEWORK_VERSION } from './src/framework.js';
+console.log(`Running VanillaForge v${FRAMEWORK_VERSION}`);
+```
+
+### FRAMEWORK_NAME
+
+Name of the framework.
+
+**Type:** String
+
+**Example:**
+```javascript
+import { FRAMEWORK_NAME } from './src/framework.js';
+console.log(`Framework: ${FRAMEWORK_NAME}`);
 ```
 
 ## Event Types
