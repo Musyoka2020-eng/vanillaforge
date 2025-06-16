@@ -1,4 +1,4 @@
-# � VanillaForge
+# 🔥 VanillaForge
 
 **Forge modern Single Page Applications with vanilla JavaScript**
 
@@ -22,7 +22,7 @@ A lightweight, powerful framework that gives you all the tools to build sophisti
 
 ```bash
 # Clone VanillaForge
-git clone https://github.com/your-username/vanillaforge.git
+git clone https://github.com/Musyoka2020-eng/vanillaforge.git
 cd vanillaforge
 
 # Install dev dependencies
