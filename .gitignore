@@ -48,8 +48,9 @@ coverage/
 tmp/
 temp/
 
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
+# Private development files (DO NOT COMMIT)
+ROADMAP_PRIVATE.md
+*_PRIVATE.*
+*.private.*
+notes/
+personal-notes/
