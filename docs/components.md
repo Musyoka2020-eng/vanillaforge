@@ -1,467 +1,222 @@
-# 🧩 Component System
+# 🧩 Components
 
-Complete guide to VanillaForge's component system.
+*How to build reusable UI components*
 
-## Table of Contents
+## What are Components?
 
-- [Overview](#overview)
-- [Component Lifecycle](#component-lifecycle)
-- [State Management](#state-management)
-- [Event Handling](#event-handling)
-- [Component Communication](#component-communication)
-- [Best Practices](#best-practices)
-- [Advanced Patterns](#advanced-patterns)
+Components are the building blocks of your VanillaForge application. Think of them like custom HTML elements - each component is a self-contained piece of your user interface that manages its own:
 
-## Overview
+- **Content** (what HTML it shows)
+- **Data** (what information it keeps track of)
+- **Behavior** (how it responds to user interactions)
 
-VanillaForge components are the building blocks of your application. They provide:
+You can combine many small components to build complex applications, and reuse the same component in multiple places.
 
-- **Encapsulation** - Self-contained UI elements with their own state and logic
-- **Reusability** - Components can be used throughout your application
-- **Composition** - Complex UIs built from simple components
-- **Lifecycle Management** - Automatic cleanup and resource management
+## Basic Component
 
-## Component Lifecycle
+The simplest component just needs to return some HTML. All components must extend from `BaseComponent`:
 
-Every component goes through several phases during its lifetime:
-
-### 1. Creation
 ```javascript
 class MyComponent extends BaseComponent {
     constructor(eventBus, props = {}) {
         super(eventBus, props);
-        this.name = 'my-component';
-        this.state = { /* initial state */ };
+        this.state = { message: 'Hello!' };  // Component's data
+    }
+
+    render() {
+        // This method returns the HTML for your component
+        return `<div class="my-component">${this.state.message}</div>`;
+    }
+
+    afterRender() {
+        // Add event listeners here (after HTML is created)
     }
 }
 ```
 
-### 2. Initialization
+## Component with State
+
+State is the data your component keeps track of. When state changes, the component automatically re-renders to show the new data:
+
 ```javascript
-async init() {
-    await super.init();
-    // Custom initialization logic
-    this.setupEventListeners();
-    this.loadData();
+class CounterComponent extends BaseComponent {
+    constructor(eventBus, props = {}) {
+        super(eventBus, props);
+        // Initialize the component's data
+        this.state = { count: 0 };
+    }
+
+    render() {
+        // Use state data in your HTML
+        return `
+            <div class="counter">
+                <p>Count: ${this.state.count}</p>
+                <button id="increment">+</button>
+                <button id="decrement">-</button>
+            </div>
+        `;
+    }
+
+    afterRender() {
+        // Add event listeners after the HTML is created
+        this.element.querySelector('#increment').onclick = () => {
+            // Update state - this automatically re-renders the component
+            this.setState({ count: this.state.count + 1 });
+        };
+        
+        this.element.querySelector('#decrement').onclick = () => {
+            this.setState({ count: this.state.count - 1 });
+        };
+    }
 }
 ```
 
-### 3. Rendering
+## Lifecycle Methods
+
+Components go through different stages: creation, rendering, and destruction. You can run code at each stage by defining these methods:
+
 ```javascript
-getTemplate() {
-    return `
-        <div class="${this.name}">
-            <!-- Component HTML -->
-        </div>
-    `;
+class LifecycleComponent extends BaseComponent {
+    async init() {
+        // Called ONCE before the first render
+        // Good for: loading data from APIs, setting up subscriptions
+        console.log('Component initializing');
+        this.state.data = await fetchSomeData();
+    }
+
+    render() {
+        // Called EVERY TIME the component needs to update its HTML
+        // Required method - must return an HTML string
+        return '<div>Component content</div>';
+    }
+
+    afterRender() {
+        // Called AFTER each render (when HTML is in the DOM)
+        // Good for: adding event listeners, focusing inputs, setting up charts
+        console.log('Component rendered');
+    }
+
+    beforeDestroy() {
+        // Called BEFORE the component is removed from the page
+        // Good for: cleaning up timers, removing event listeners, canceling API calls
+        console.log('Component cleaning up');
+    }
 }
 ```
 
-### 4. Mounting
+## Props and Parameters
+
+Components can receive data from two sources:
+
+1. **URL Parameters** - data from the URL (like `/users/123`)
+2. **Props** - data passed from parent components
+
 ```javascript
-getLifecycle() {
-    return {
-        onMount: () => {
-            // Component is now in the DOM
-            this.initializePlugins();
-            this.startAnimations();
+// URL: /users/123
+class UserComponent extends BaseComponent {
+    async init() {
+        // Get data from the URL
+        const userId = this.props.params.id; // '123' from /users/123
+        
+        // Get data passed from parent
+        const userData = this.props.userData; // Passed when component was created
+        
+        // Load user data based on URL parameter
+        this.state.user = await fetchUser(userId);
+    }
+
+    render() {
+        if (!this.state.user) {
+            return '<div>Loading user...</div>';
         }
-    };
-}
-```
 
-### 5. Updates
-```javascript
-// State changes trigger re-renders
-this.setState({ newData: 'value' });
-```
-
-### 6. Unmounting
-```javascript
-getLifecycle() {
-    return {
-        onUnmount: () => {
-            // Component being removed from DOM
-            this.cleanup();
-            this.stopAnimations();
-        }
-    };
-}
-```
-
-### 7. Destruction
-```javascript
-async destroy() {
-    // Final cleanup
-    this.removeEventListeners();
-    await super.destroy();
-}
-```
-
-## State Management
-
-Components manage their own local state and can respond to state changes.
-
-### Initial State
-```javascript
-constructor(eventBus, props = {}) {
-    super(eventBus, props);
-    this.state = {
-        loading: false,
-        data: [],
-        error: null,
-        selectedItem: null
-    };
-}
-```
-
-### Updating State
-```javascript
-// Simple update
-this.setState({ loading: true });
-
-// Multiple properties
-this.setState({
-    loading: false,
-    data: responseData,
-    error: null
-});
-
-// Conditional updates
-if (this.state.selectedItem !== newItem) {
-    this.setState({ selectedItem: newItem });
-}
-```
-
-### Computed Properties
-```javascript
-getTemplate() {
-    const { data, loading, error } = this.state;
-    
-    // Compute derived values in template
-    const itemCount = data.length;
-    const hasItems = itemCount > 0;
-    
-    return `
-        <div class="component">
-            ${loading ? '<div class="loading">Loading...</div>' : ''}
-            ${error ? `<div class="error">${error}</div>` : ''}
-            ${hasItems ? `<div class="count">${itemCount} items</div>` : ''}
-            <!-- Rest of template -->
-        </div>
-    `;
-}
-```
-
-## Event Handling
-
-Components can handle user interactions and system events.
-
-### DOM Events
-```javascript
-getTemplate() {
-    return `
-        <div class="component">
-            <button onclick="window.${this.name}.handleClick(event)">
-                Click Me
-            </button>
-            <input 
-                type="text" 
-                oninput="window.${this.name}.handleInput(event)"
-                value="${this.state.inputValue}"
-            >
-        </div>
-    `;
-}
-
-handleClick(event) {
-    console.log('Button clicked!');
-    this.setState({ clicked: true });
-}
-
-handleInput(event) {
-    this.setState({ inputValue: event.target.value });
-}
-
-getLifecycle() {
-    return {
-        onMount: () => {
-            // Expose component globally for event handlers
-            window[this.name] = this;
-        },
-        onUnmount: () => {
-            // Clean up global reference
-            delete window[this.name];
-        }
-    };
-}
-```
-
-### Framework Events
-```javascript
-async init() {
-    await super.init();
-    
-    // Listen for framework events
-    this.eventBus.on('user:login', this.handleUserLogin.bind(this));
-    this.eventBus.on('theme:changed', this.handleThemeChange.bind(this));
-}
-
-handleUserLogin(userData) {
-    this.setState({ 
-        user: userData,
-        isLoggedIn: true 
-    });
-}
-
-handleThemeChange(theme) {
-    this.element.className = `${this.name} theme-${theme}`;
-}
-
-async destroy() {
-    // Clean up event listeners
-    this.eventBus.off('user:login', this.handleUserLogin);
-    this.eventBus.off('theme:changed', this.handleThemeChange);
-    await super.destroy();
+        return `
+            <div class="user-profile">
+                <h1>${this.state.user.name}</h1>
+                <p>User ID: ${this.props.params.id}</p>
+                <p>Email: ${this.state.user.email}</p>
+            </div>
+        `;
+    }
 }
 ```
 
 ## Component Communication
 
-Components can communicate through several mechanisms:
+Components can talk to each other using the event system. This lets you build applications where different parts can communicate without being directly connected:
 
-### Event Bus
 ```javascript
-// Component A emits an event
-this.eventBus.emit('product:selected', {
-    productId: 123,
-    productName: 'Widget'
-});
-
-// Component B listens for the event
-this.eventBus.on('product:selected', (product) => {
-    this.setState({ selectedProduct: product });
-});
-```
-
-### Props
-```javascript
-// Parent passes props to child
-const childComponent = new ChildComponent(this.eventBus, {
-    title: 'Child Title',
-    data: this.state.data,
-    onUpdate: (newData) => {
-        this.setState({ data: newData });
+class ParentComponent extends BaseComponent {
+    async init() {
+        // Listen for messages from child components
+        this.eventBus.on('child:action', (data) => {
+            console.log('Child did something:', data);
+            // Update parent based on child action
+            this.setState({ lastChildAction: data.action });
+        });
     }
-});
-```
 
-### Global State
-```javascript
-// Using a global state manager
-class AppState {
-    static state = { user: null, theme: 'light' };
-    static listeners = [];
-    
-    static setState(newState) {
-        this.state = { ...this.state, ...newState };
-        this.listeners.forEach(listener => listener(this.state));
+    beforeDestroy() {
+        // Always clean up event listeners
+        this.eventBus.off('child:action');
     }
-    
-    static subscribe(listener) {
-        this.listeners.push(listener);
-        return () => {
-            this.listeners = this.listeners.filter(l => l !== listener);
+}
+
+class ChildComponent extends BaseComponent {
+    afterRender() {
+        this.element.querySelector('button').onclick = () => {
+            // Tell parent (and anyone else listening) about this action
+            this.eventBus.emit('child:action', { 
+                action: 'button-click',
+                timestamp: Date.now()
+            });
         };
     }
-}
-
-// In component
-async init() {
-    await super.init();
-    this.unsubscribe = AppState.subscribe((state) => {
-        this.setState({ globalState: state });
-    });
-}
-
-async destroy() {
-    this.unsubscribe();
-    await super.destroy();
 }
 ```
 
 ## Best Practices
 
-### Component Design
-1. **Single Responsibility** - Each component should do one thing well
-2. **Small and Focused** - Keep components small and manageable
-3. **Descriptive Names** - Use clear, descriptive component names
-4. **Consistent Structure** - Follow consistent patterns across components
+### Keep Components Small
+Each component should have one clear purpose. If a component is doing too many things, split it into smaller components.
 
-### State Management
-1. **Minimize State** - Only store what's necessary for rendering
-2. **Immutable Updates** - Always create new objects when updating state
-3. **Validate Props** - Validate props in the constructor
-4. **Default Values** - Provide sensible defaults for all props
-
-### Performance
-1. **Efficient Renders** - Only call setState when state actually changes
-2. **Cleanup Resources** - Always clean up timers, listeners, and subscriptions
-3. **Lazy Loading** - Load data only when needed
-4. **Debounce Updates** - Debounce rapid state changes
-
-### Error Handling
 ```javascript
-async loadData() {
-    this.setState({ loading: true, error: null });
-    
-    try {
-        const data = await fetchData();
-        this.setState({ data, loading: false });
-    } catch (error) {
-        this.setState({ 
-            error: error.message, 
-            loading: false 
-        });
-        this.logger.error('Failed to load data', error);
+// Good - focused component
+class UserAvatar extends BaseComponent {
+    render() {
+        return `<img src="${this.props.user.avatar}" alt="${this.props.user.name}">`;
+    }
+}
+
+// Good - another focused component  
+class UserName extends BaseComponent {
+    render() {
+        return `<span class="user-name">${this.props.user.name}</span>`;
     }
 }
 ```
 
-## Advanced Patterns
+### Clean Up Resources
+Always clean up timers, event listeners, and API calls when components are destroyed:
 
-### Higher-Order Components
 ```javascript
-function withLoading(ComponentClass) {
-    return class extends ComponentClass {
-        constructor(eventBus, props) {
-            super(eventBus, props);
-            this.state = { ...this.state, loading: false };
-        }
-        
-        showLoading() {
-            this.setState({ loading: true });
-        }
-        
-        hideLoading() {
-            this.setState({ loading: false });
-        }
-        
-        getTemplate() {
-            if (this.state.loading) {
-                return '<div class="loading">Loading...</div>';
-            }
-            return super.getTemplate();
-        }
-    };
-}
+class ComponentWithTimer extends BaseComponent {
+    afterRender() {
+        // Set up a timer
+        this.timer = setInterval(() => {
+            this.updateClock();
+        }, 1000);
+    }
 
-// Usage
-const LoadableUserList = withLoading(UserListComponent);
-```
-
-### Component Composition
-```javascript
-class PageComponent extends BaseComponent {
-    constructor(eventBus, props = {}) {
-        super(eventBus, props);
-        this.name = 'page-component';
-        this.children = [];
-    }
-    
-    async init() {
-        await super.init();
-        
-        // Create child components
-        this.header = new HeaderComponent(this.eventBus, {
-            title: this.props.title
-        });
-        this.content = new ContentComponent(this.eventBus, {
-            data: this.props.data
-        });
-        this.footer = new FooterComponent(this.eventBus);
-        
-        this.children = [this.header, this.content, this.footer];
-        
-        // Initialize children
-        await Promise.all(this.children.map(child => child.init()));
-    }
-    
-    getTemplate() {
-        return `
-            <div class="page">
-                <div id="header-container"></div>
-                <div id="content-container"></div>
-                <div id="footer-container"></div>
-            </div>
-        `;
-    }
-    
-    getLifecycle() {
-        return {
-            onMount: async () => {
-                // Render children into containers
-                await this.header.render();
-                this.header.container = this.element.querySelector('#header-container');
-                this.header.container.appendChild(this.header.element);
-                
-                await this.content.render();
-                this.content.container = this.element.querySelector('#content-container');
-                this.content.container.appendChild(this.content.element);
-                
-                await this.footer.render();
-                this.footer.container = this.element.querySelector('#footer-container');
-                this.footer.container.appendChild(this.footer.element);
-            },
-            onUnmount: () => {
-                // Cleanup children
-                this.children.forEach(child => child.destroy());
-            }
-        };
-    }
-}
-```
-
-### Dynamic Components
-```javascript
-class DynamicContainer extends BaseComponent {
-    constructor(eventBus, props = {}) {
-        super(eventBus, props);
-        this.name = 'dynamic-container';
-        this.currentComponent = null;
-    }
-    
-    async loadComponent(componentName, props = {}) {
-        // Unload current component
-        if (this.currentComponent) {
-            await this.currentComponent.destroy();
+    beforeDestroy() {
+        // Clean up the timer
+        if (this.timer) {
+            clearInterval(this.timer);
         }
-        
-        // Load new component
-        const ComponentClass = this.getComponentClass(componentName);
-        this.currentComponent = new ComponentClass(this.eventBus, props);
-        
-        await this.currentComponent.init();
-        await this.currentComponent.render();
-        
-        // Mount in container
-        if (this.element) {
-            this.element.innerHTML = '';
-            this.element.appendChild(this.currentComponent.element);
-        }
-    }
-    
-    getComponentClass(name) {
-        const components = {
-            'user-list': UserListComponent,
-            'user-detail': UserDetailComponent,
-            'settings': SettingsComponent
-        };
-        return components[name] || NotFoundComponent;
     }
 }
 ```
 
 ---
 
-This component system provides a solid foundation for building complex, maintainable applications with VanillaForge.
+*Keep components small and focused on a single responsibility.*

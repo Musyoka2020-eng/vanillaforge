@@ -65,7 +65,6 @@ await app.start();
 - 🧩 **[Components Guide](docs/components.md)** - Build reusable UI components  
 - 🛣️ **[Routing System](docs/router.md)** - SPA navigation and routing
 - 📡 **[Event Bus](docs/event-bus.md)** - Component communication
-- 🎯 **[State Management](docs/state-management.md)** - Manage application state
 - 🔧 **[API Reference](docs/API.md)** - Complete API documentation
 - 🏗️ **[Build System](docs/build-system.md)** - Production builds
 
