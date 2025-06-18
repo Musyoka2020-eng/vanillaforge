@@ -9,6 +9,8 @@
  * @since 2025-06-14
  */
 
+import { LocalStorageAdapter } from './storage.js';
+
 /**
  * Log levels enum
  * @readonly
@@ -34,28 +36,26 @@ export class Logger {
    * @param {string} context - The context/module name for this logger
    * @param {string} [level=LogLevel.INFO] - Minimum log level to output
    */
-  constructor(context = 'App', level = LogLevel.INFO) {
+  constructor(context = 'App', level = LogLevel.INFO, storageAdapter) {
     this.context = context;
     this.level = level;
     this.startTime = Date.now();
-    
-    // Log level priorities for filtering
+    this.storage = storageAdapter || (typeof window !== 'undefined' ? new LocalStorageAdapter() : null);
+
     this.levelPriorities = {
       [LogLevel.DEBUG]: 0,
       [LogLevel.INFO]: 1,
       [LogLevel.WARN]: 2,
       [LogLevel.ERROR]: 3
     };
-    
-    // Console method mapping
+
     this.consoleMethods = {
       [LogLevel.DEBUG]: 'debug',
       [LogLevel.INFO]: 'log',
       [LogLevel.WARN]: 'warn',
       [LogLevel.ERROR]: 'error'
     };
-    
-    // Colors for different log levels (for development)
+
     this.colors = {
       [LogLevel.DEBUG]: '#6b7280',
       [LogLevel.INFO]: '#2563eb',
@@ -133,26 +133,16 @@ export class Logger {
    * @param {Object} logEntry - Formatted log entry
    */
   async sendToRemoteLogging(logEntry) {
-    // Only send warnings and errors to remote logging
-    if (logEntry.level === 'WARN' || logEntry.level === 'ERROR') {
-      try {
-        // This would integrate with your logging service
-        // Example: Sentry, LogRocket, etc.
-        
-        // For now, just store in localStorage for development
-        const logs = JSON.parse(localStorage.getItem('ucm_logs') || '[]');
-        logs.push(logEntry);
-        
-        // Keep only last 100 logs
-        if (logs.length > 100) {
-          logs.shift();
-        }
-        
-        localStorage.setItem('ucm_logs', JSON.stringify(logs));
-        
-      } catch (error) {
-        console.error('Failed to send log to remote service:', error);
-      }
+    if (!this.storage || (logEntry.level !== 'WARN' && logEntry.level !== 'ERROR')) {
+      return;
+    }
+
+    try {
+      const logs = this.storage.getLogs('ucm_logs');
+      logs.push(logEntry);
+      this.storage.saveLogs('ucm_logs', logs);
+    } catch (error) {
+      console.error('Failed to send log to remote service:', error);
     }
   }
 
@@ -292,41 +282,28 @@ export class Logger {
    */
   child(childContext) {
     const fullContext = `${this.context}:${childContext}`;
-    return new Logger(fullContext, this.level);
+    return new Logger(fullContext, this.level, this.storage);
   }
 
-  /**
-   * Get all stored logs (from localStorage)
-   * 
-   * @returns {Array} Array of log entries
-   */
-  static getLogs() {
-    try {
-      return JSON.parse(localStorage.getItem('ucm_logs') || '[]');
-    } catch (error) {
-      console.error('Failed to retrieve logs:', error);
-      return [];
+  getLogs() {
+    return this.storage ? this.storage.getLogs('ucm_logs') : [];
+  }
+
+  clearLogs() {
+    if (this.storage) {
+      this.storage.removeItem('ucm_logs');
+      this.info('Logs cleared');
     }
   }
 
-  /**
-   * Clear all stored logs
-   */
-  static clearLogs() {
-    try {
-      localStorage.removeItem('ucm_logs');
-      console.info('Logs cleared');
-    } catch (error) {
-      console.error('Failed to clear logs:', error);
+  exportLogs() {
+    if (typeof window === 'undefined' || !this.storage) {
+      this.warn('Log export is only available in a browser environment with storage.');
+      return;
     }
-  }
 
-  /**
-   * Export logs as downloadable file
-   */
-  static exportLogs() {
     try {
-      const logs = Logger.getLogs();
+      const logs = this.getLogs();
       const logData = JSON.stringify(logs, null, 2);
       const blob = new Blob([logData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -339,9 +316,9 @@ export class Logger {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      console.info('Logs exported successfully');
+      this.info('Logs exported successfully');
     } catch (error) {
-      console.error('Failed to export logs:', error);
+      this.error('Failed to export logs', error);
     }
   }
 }

@@ -23,25 +23,19 @@ export class Router {
    * 
    * @param {EventBus} eventBus - Application event bus
    */  
-  constructor(eventBus) {
-    this.logger = new Logger('Router');
-    this.errorHandler = new ErrorHandler();
+  constructor(eventBus, logger, errorHandler) {
     this.eventBus = eventBus;
+    this.logger = logger || new Logger('Router');
+    this.errorHandler = errorHandler || new ErrorHandler();
     this.routes = new Map();
     this.currentRoute = null;
     this.isInitialized = false;
     this.beforeNavigationCallbacks = [];
     this.afterNavigationCallbacks = [];
-    
-    // Navigation state tracking
     this.isNavigating = false;
-    this.targetPath = null;
-    
-    // Bind methods
+
     this.handlePopState = this.handlePopState.bind(this);
     this.handleLinkClick = this.handleLinkClick.bind(this);
-    
-    this.logger.debug('Router instance created');
   }
 
   /**
@@ -180,73 +174,51 @@ export class Router {
    * @param {string} path - Path to navigate to
    * @param {Object} options - Navigation options
    * @returns {Promise<boolean>} - Success status
-   */  async navigateTo(path, options = {}) {
+   */
+  async navigateTo(path, options = {}) {
+    if (this.isNavigating) {
+      this.logger.warn('Navigation already in progress.');
+      return;
+    }
+
+    this.isNavigating = true;
+    this.logger.info(`Navigating to ${path}`);
+
     try {
-      if (this.isNavigating) {
-        this.logger.warn('Navigation already in progress');
-        return false;
-      }
+      const { route, params } = this.findRoute(path);
 
-      this.isNavigating = true;
-      this.targetPath = path;
-      
-      this.logger.debug(`Navigating to: ${path}`);      // Find matching route
-      const route = this.findRoute(path);
-      
       if (!route) {
-        // Try to navigate to 404 route
-        const notFoundRoute = this.routes.get('/404') || this.routes.get('*');
-        if (notFoundRoute && path !== '/404') {
-          this.isNavigating = false;
-          return this.navigateTo('/404', options);
-        }
-        
-        this.logger.error(`No route found for path: ${path}`);
+        this.logger.warn(`No route found for path: ${path}`);
+        this.eventBus.emit('router:not-found', { path });
         this.isNavigating = false;
-        return false;
+        return;
       }
 
-      // Run before navigation callbacks
       const canNavigate = await this.runBeforeNavigationCallbacks(route, path);
       if (!canNavigate) {
         this.isNavigating = false;
-        return false;
+        return;
       }
 
-      // Update browser history
       if (!options.fromPopState) {
-        if (options.replace) {
-          window.history.replaceState({ path }, '', path);
-        } else {
-          window.history.pushState({ path }, '', path);
-        }
-      }      // Load the route component
-      await this.loadRouteComponent(route);
-      
-      // Update current route
-      this.currentRoute = route;
-      
-      // Update page title
-      if (route.title) {
-        document.title = route.title;
+        const url = path + (options.query ? `?${new URLSearchParams(options.query)}` : '');
+        window.history[options.replace ? 'replaceState' : 'pushState']({ path }, '', url);
       }
 
-      // Run after navigation callbacks
-      await this.runAfterNavigationCallbacks(route, path);
-      
-      // Emit navigation event
-      this.eventBus.emit('router:navigated', { route, path });
-      
-      this.logger.info(`Successfully navigated to: ${path}`);
-      return true;
-      
+      this.currentRoute = { ...route, params };
+      document.title = route.title || 'VanillaForge App';
+
+      this.eventBus.emit('router:load-component', {
+        component: route.component,
+        route: this.currentRoute,
+      });
+
+      await this.runAfterNavigationCallbacks(this.currentRoute, path);
+      this.eventBus.emit('router:navigated', { route: this.currentRoute, path });
     } catch (error) {
-      this.logger.error('Navigation failed', error);
-      this.errorHandler.handleError(error, ErrorType.NAVIGATION);
-      return false;
+      this.errorHandler.handleError(error, { path, options });
     } finally {
       this.isNavigating = false;
-      this.targetPath = null;
     }
   }
 
@@ -270,21 +242,15 @@ export class Router {
    * @param {string} path - Path to match
    * @returns {Object|null} - Matching route or null
    * @private
-   */  findRoute(path) {
-    // Exact match first
-    if (this.routes.has(path)) {
-      const route = this.routes.get(path);
-      return route;
-    }
-    
-    // Try to match with route parameters
+   */
+  findRoute(path) {
     for (const [routePath, route] of this.routes) {
-      if (this.matchesRoute(path, routePath)) {
-        return route;
+      const { isMatch, params } = this.matchesRoute(path, routePath);
+      if (isMatch) {
+        return { route, params };
       }
     }
-    
-    return null;
+    return { route: null, params: {} };
   }
 
   /**
@@ -296,18 +262,23 @@ export class Router {
    * @private
    */
   matchesRoute(path, routePattern) {
-    if (routePattern === '*') return true;
-    if (routePattern === path) return true;
-    
-    // Simple parameter matching (e.g., /users/:id)
-    const routeParts = routePattern.split('/');
-    const pathParts = path.split('/');
-    
-    if (routeParts.length !== pathParts.length) return false;
-    
-    return routeParts.every((part, index) => {
-      return part.startsWith(':') || part === pathParts[index];
+    const params = {};
+    const pathParts = path.split('/').filter(p => p);
+    const routeParts = routePattern.split('/').filter(p => p);
+
+    if (routeParts.length !== pathParts.length) {
+      return { isMatch: false, params };
+    }
+
+    const isMatch = routeParts.every((part, index) => {
+      if (part.startsWith(':')) {
+        params[part.substring(1)] = pathParts[index];
+        return true;
+      }
+      return part === pathParts[index];
     });
+
+    return { isMatch, params };
   }
 
   /**

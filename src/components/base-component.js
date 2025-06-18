@@ -26,19 +26,21 @@ import { ErrorHandler } from '../utils/error-handler.js';
  * All UI components should extend this class to inherit common functionality
  * and maintain consistency across the application.
  */
-export class BaseComponent {    /**
+export class BaseComponent {
+    /**
      * Create a new component instance
      * 
      * @param {EventBus} eventBus - The event bus for communication
      * @param {Object} props - Component properties and configuration
      * @param {string} props.name - Component name for logging and debugging
      * @param {boolean} props.autoRender - Whether to automatically render on initialization
-     */    constructor(eventBus, props = {}) {
+     */
+    constructor(eventBus, props = {}) {
         // Validate required parameters
         if (!eventBus) {
             throw new Error('BaseComponent requires an EventBus instance');
         }
-        
+
         // Core properties
         this.eventBus = eventBus;
         this.container = null; // Will be set during rendering
@@ -46,31 +48,30 @@ export class BaseComponent {    /**
         this.name = props.name || this.constructor.name;
         this.props = props || {};
         this.state = {};
-        
+
         // Component lifecycle flags
         this.isInitialized = false;
         this.isRendered = false;
         this.isDestroyed = false;
-        
+
         // Event management
         this.eventListeners = new Map();
-        this.eventBusSubscriptions = [];
-        
-        // Configuration
+        this.eventBusSubscriptions = [];        // Configuration
         this.autoRender = props.autoRender !== false; // Default to true
-          // Initialize logger with component context
+        this.autoLoadCSSEnabled = props.autoLoadCSS !== false; // Default to true
+        // Initialize logger with component context
         this.logger = new Logger(`Component:${this.name}`, 'info');
-        
+
         // Initialize error handler
         this.errorHandler = new ErrorHandler();
-        
+
         // Bind methods to maintain context
         this.handleError = this.handleError.bind(this);
         this.cleanup = this.cleanup.bind(this);
-        
+
         // Setup error boundary
         this.setupErrorBoundary();
-        
+
         this.logger.info('Component initialized', { name: this.name, props: this.props });
     }
 
@@ -81,8 +82,7 @@ export class BaseComponent {    /**
      * event listeners, validate props, and perform initial rendering.
      * 
      * @returns {Promise<void>}
-     */
-    async init() {
+     */    async init() {
         if (this.isInitialized) {
             this.logger.warn('Component already initialized');
             return;
@@ -90,31 +90,34 @@ export class BaseComponent {    /**
 
         try {
             this.logger.debug('Initializing component');
-            
+
             // Validate component properties
-            await this.validateProps();
-            
+            await this.validateProps();            // Auto-load CSS files if enabled
+            if (this.autoLoadCSSEnabled !== false) {
+                await this.autoLoadCSS();
+            }
+
             // Setup component-specific initialization
             await this.onInit();
-            
+
             // Setup event listeners
             this.setupEventListeners();
-            
+
             // Auto-render if enabled
             if (this.autoRender) {
                 await this.render();
             }
-              this.isInitialized = true;
+            this.isInitialized = true;
             this.logger.info('Component initialized successfully', { name: this.name, props: this.props });
-            
+
             // Emit initialization complete event
             this.emit('component:initialized', { component: this.name });
-            
+
         } catch (error) {
             this.handleError(error, 'Component initialization failed');
             throw error;
         }
-    }    /**
+    }/**
      * Render the component
      * 
      * This method generates and inserts the component's HTML into the container.
@@ -131,12 +134,12 @@ export class BaseComponent {    /**
 
         try {
             this.logger.debug('Rendering component');
-            
+
             // Clear existing content
             if (this.isRendered) {
                 this.cleanup();
             }
-              // Generate component HTML
+            // Generate component HTML
             let html;
             if (typeof this.getHTML === 'function') {
                 html = await this.getHTML();
@@ -145,27 +148,27 @@ export class BaseComponent {    /**
             } else {
                 throw new Error('Component must implement getHTML() or getTemplate() method');
             }
-            
+
             // Insert HTML into container
             this.container.innerHTML = html;
-            
+
             // Post-render setup
             await this.onRender();
-            
+
             // Setup event delegation for rendered elements
             this.setupEventDelegation();
-            
+
             this.isRendered = true;
-            
+
             const renderTime = performance.now() - renderStartTime;
             this.logger.debug('Component rendered successfully', { renderTime: `${renderTime.toFixed(2)}ms` });
-            
+
             // Emit render complete event with performance data
-            this.emit('component:rendered', { 
+            this.emit('component:rendered', {
                 component: this.name,
                 renderTime
             });
-            
+
         } catch (error) {
             this.handleError(error, 'Component rendering failed');
             throw error;
@@ -183,27 +186,27 @@ export class BaseComponent {    /**
         try {
             const oldProps = { ...this.props };
             this.props = { ...this.props, ...newProps };
-            
+
             // Check if props actually changed
             const propsChanged = JSON.stringify(oldProps) !== JSON.stringify(this.props);
-            
+
             if (propsChanged || forceRender) {
                 this.logger.debug('Props updated, re-rendering', { oldProps, newProps });
-                
+
                 // Validate new props
                 await this.validateProps();
-                
+
                 // Re-render component
                 await this.render();
-                
+
                 // Emit props updated event
-                this.emit('component:propsUpdated', { 
-                    component: this.name, 
-                    oldProps, 
-                    newProps: this.props 
+                this.emit('component:propsUpdated', {
+                    component: this.name,
+                    oldProps,
+                    newProps: this.props
                 });
             }
-            
+
         } catch (error) {
             this.handleError(error, 'Props update failed');
             throw error;
@@ -227,29 +230,29 @@ export class BaseComponent {    /**
                 this._stateUpdateQueue.push({ newState, autoRender });
                 return;
             }
-            
+
             this._updatingState = true;
-            
+
             try {
                 const oldState = { ...this.state };
                 this.state = { ...this.state, ...newState };
-                
+
                 this.logger.debug('State updated', { oldState, newState: this.state });
-                
+
                 if (autoRender && this.isRendered && !this.isDestroyed) {
                     await this.render();
                 }
-                
+
                 // Emit state updated event
-                this.emit('component:stateUpdated', { 
-                    component: this.name, 
-                    oldState, 
-                    newState: this.state 
+                this.emit('component:stateUpdated', {
+                    component: this.name,
+                    oldState,
+                    newState: this.state
                 });
-                
+
             } finally {
                 this._updatingState = false;
-                
+
                 // Process queued state updates
                 if (this._stateUpdateQueue && this._stateUpdateQueue.length > 0) {
                     const queuedUpdate = this._stateUpdateQueue.shift();
@@ -259,7 +262,7 @@ export class BaseComponent {    /**
                     }, 0);
                 }
             }
-            
+
         } catch (error) {
             this._updatingState = false;
             this.handleError(error, 'State update failed');
@@ -281,28 +284,28 @@ export class BaseComponent {    /**
 
         try {
             this.logger.debug('Destroying component');
-            
+
             // Component-specific cleanup
             this.onDestroy();
-            
+
             // Clean up event listeners and subscriptions
             this.cleanup();
-            
+
             // Clear container
             if (this.container) {
                 this.container.innerHTML = '';
             }
-            
+
             // Mark as destroyed
             this.isDestroyed = true;
             this.isRendered = false;
             this.isInitialized = false;
-            
+
             this.logger.info('Component destroyed successfully');
-            
+
             // Emit destruction event
             this.emit('component:destroyed', { component: this.name });
-            
+
         } catch (error) {
             this.handleError(error, 'Component destruction failed');
         }
@@ -317,7 +320,7 @@ export class BaseComponent {    /**
     addEventListener(target, event, handler, options = {}) {
         try {
             let element = target;
-            
+
             // If target is a string, find element within component container
             if (typeof target === 'string') {
                 element = this.container.querySelector(target);
@@ -326,12 +329,12 @@ export class BaseComponent {    /**
                     return;
                 }
             }
-            
+
             // Validate element
             if (!element || !(element instanceof HTMLElement)) {
                 throw new Error('Invalid element for event listener');
             }
-            
+
             // Create wrapped handler for error handling
             const wrappedHandler = (e) => {
                 try {
@@ -340,10 +343,10 @@ export class BaseComponent {    /**
                     this.handleError(error, `Event handler failed for ${event}`);
                 }
             };
-            
+
             // Add event listener
             element.addEventListener(event, wrappedHandler, options);
-            
+
             // Store for cleanup with a more unique key
             const key = `${element.tagName}-${event}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
             this.eventListeners.set(key, {
@@ -352,11 +355,11 @@ export class BaseComponent {    /**
                 handler: wrappedHandler,
                 options
             });
-            
+
             this.logger.debug('Event listener added', { target: typeof target === 'string' ? target : target.tagName, event });
-            
+
             return key; // Return key for manual removal if needed
-            
+
         } catch (error) {
             this.handleError(error, 'Failed to add event listener');
             return null;
@@ -378,18 +381,18 @@ export class BaseComponent {    /**
                     this.handleError(error, `EventBus handler failed for ${eventName}`);
                 }
             };
-            
+
             // Subscribe to event using the eventBus instance and get unsubscribe function
             const unsubscribe = this.eventBus.on(eventName, wrappedHandler);
-            
+
             // Store for cleanup
             this.eventBusSubscriptions.push({
                 eventName,
                 unsubscribe
             });
-            
+
             this.logger.debug('EventBus subscription added', { eventName });
-            
+
         } catch (error) {
             this.handleError(error, 'Failed to subscribe to EventBus event');
         }
@@ -449,17 +452,15 @@ export class BaseComponent {    /**
             link.rel = 'stylesheet';
             link.type = 'text/css';
             link.href = cssPath;
-            
+
             // Handle load/error events
             link.onload = () => resolve();
             link.onerror = () => reject(new Error(`Failed to load CSS: ${cssPath}`));
-            
+
             // Add to document head
             document.head.appendChild(link);
         });
-    }
-
-    /**
+    }    /**
      * Unload CSS file
      * 
      * @param {string} cssPath - Path to the CSS file
@@ -468,6 +469,43 @@ export class BaseComponent {    /**
         const link = document.querySelector(`link[href="${cssPath}"]`);
         if (link) {
             link.remove();
+        }
+    }    /**
+     * Auto-load CSS for component based on naming convention
+     * Looks for CSS files in: styles/components/{component-name}.css
+     * 
+     * @private
+     * @returns {Promise<void>}
+     */
+    async autoLoadCSS() {
+        if (!this.name || typeof window === 'undefined') return;
+        
+        // Generate CSS filename from component name
+        const cssFileName = this.name.toLowerCase()
+            .replace(/component$/, '') // Remove 'component' suffix if present
+            .replace(/[^a-z0-9]/g, '-') // Replace non-alphanumeric with hyphens
+            .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+            .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+        
+        // Add 'component' suffix back for CSS file naming convention
+        const fullCssName = cssFileName ? `${cssFileName}-component` : this.name.toLowerCase();
+        
+        const cssPaths = [
+            `styles/components/${fullCssName}.css`,     // For built version (primary)
+            `src/styles/components/${fullCssName}.css`, // For development
+            `styles/components/${this.name.toLowerCase()}.css`, // Fallback with exact name
+            `src/styles/components/${this.name.toLowerCase()}.css` // Fallback development
+        ];
+        
+        for (const cssPath of cssPaths) {
+            try {
+                await this.loadCSS(cssPath);
+                this.logger.debug(`Auto-loaded CSS: ${cssPath}`);
+                break; // Stop after first successful load
+            } catch (error) {
+                // Continue to next path - this is expected behavior
+                continue;
+            }
         }
     }
 
@@ -579,7 +617,7 @@ export class BaseComponent {    /**
         };
 
         this.element.addEventListener('click', clickHandler);
-        
+
         // Store for cleanup
         this.addEventListener(this.element, 'click', clickHandler);
 
@@ -601,7 +639,7 @@ export class BaseComponent {    /**
         };
 
         this.element.addEventListener('submit', submitHandler);
-        
+
         // Store for cleanup
         this.addEventListener(this.element, 'submit', submitHandler);
 
@@ -644,12 +682,11 @@ export class BaseComponent {    /**
             try {
                 subscription.unsubscribe();
             } catch (error) {
-                this.logger.warn('Failed to unsubscribe from event', { 
-                    eventName: subscription.eventName, 
-                    error 
+                this.logger.warn('Failed to unsubscribe from event', {
+                    eventName: subscription.eventName,
+                    error
                 });
             }
         }
         this.eventBusSubscriptions = [];
-    }
-}
+    }}

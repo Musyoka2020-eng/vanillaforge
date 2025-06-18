@@ -31,7 +31,9 @@ export { ErrorHandler, ErrorType } from './utils/error-handler.js';
 export { FrameworkDebug } from './utils/framework-debug.js';
 export { SweetAlert } from './utils/sweet-alert.js';
 export { ValidationUtils } from './utils/validation.js';
-export { PerformanceUtils, performanceUtils, perf, cache } from './utils/performance.js';
+export { PerformanceUtils, performanceUtils } from './utils/performance.js';
+export { perf, cache } from './utils/decorators.js';
+export { optimizeImage, batchDOMOperations } from './utils/dom.js';
 
 // Import classes for internal use
 import { ComponentManager } from './core/component-manager.js';
@@ -39,6 +41,9 @@ import { Router } from './core/router.js';
 import { EventBus } from './core/event-bus.js';
 import { Logger } from './utils/logger.js';
 import { ErrorHandler } from './utils/error-handler.js';
+import { Notification } from './utils/notification.js';
+import { LocalStorageAdapter } from './utils/storage.js';
+import { ValidationUtils } from './utils/validation.js';
 import { FrameworkDebug } from './utils/framework-debug.js';
 import { performanceUtils } from './utils/performance.js';
 
@@ -63,10 +68,13 @@ export class FrameworkApp {
             ...config
         };
         
-        this.eventBus = new EventBus();
-        this.logger = new Logger('FrameworkApp');
-        this.errorHandler = new ErrorHandler();
-        this.componentManager = new ComponentManager(this.eventBus);
+        const storageAdapter = new LocalStorageAdapter();
+        this.logger = new Logger('FrameworkApp', this.config.logging.level, storageAdapter);
+        this.eventBus = new EventBus(this.logger.child('EventBus'));
+        this.notification = new Notification();
+        this.errorHandler = new ErrorHandler(this.notification);
+        this.validation = new ValidationUtils(this.logger.child('Validation'));
+        this.componentManager = new ComponentManager(this.eventBus, this.logger.child('ComponentManager'), this.errorHandler);
         this.router = null;
         this.isInitialized = false;
         this.performanceUtils = performanceUtils;
@@ -105,7 +113,7 @@ export class FrameworkApp {
             
             // Initialize router if routing is enabled (after ComponentManager is ready)
             if (options.routes) {
-                this.router = new Router(this.eventBus);
+                this.router = new Router(this.eventBus, this.logger.child('Router'), this.errorHandler);
                 
                 // Register routes
                 Object.entries(options.routes).forEach(([path, component]) => {
@@ -165,8 +173,7 @@ export class FrameworkApp {
             this.logger.warn('Router not initialized, cannot navigate');
         }
     }
-    
-    /**
+      /**
      * Get a service or component
      * @param {string} name - Service/component name
      */    get(name) {
@@ -184,7 +191,11 @@ export class FrameworkApp {
             case 'performanceUtils':
                 return this.performanceUtils;
             default:
-                return this.componentManager.getComponent(name);
+                // Check if it's a registered component
+                if (this.componentManager.components.has(name)) {
+                    return this.componentManager.components.get(name);
+                }
+                return null;
         }
     }
     

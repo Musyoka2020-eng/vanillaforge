@@ -11,23 +11,17 @@
 
 import { Logger } from '../utils/logger.js';
 import { ErrorHandler } from '../utils/error-handler.js';
+import { DOMRenderer } from './dom-renderer.js';
 
 export class ComponentManager {
-  /**
-   * Initialize component manager
-   * 
-   * @param {EventBus} eventBus - Application event bus
-   */
-  constructor(eventBus) {
+  constructor(eventBus, logger, errorHandler) {
     this.eventBus = eventBus;
-    this.logger = new Logger('ComponentManager');
-    this.errorHandler = new ErrorHandler();
+    this.logger = logger || new Logger('ComponentManager');
+    this.errorHandler = errorHandler || new ErrorHandler();
+    this.renderer = new DOMRenderer(this.logger);
     
-    // Component registry
     this.components = new Map();
     this.activeComponents = new Map();
-    
-    // State
     this.isInitialized = false;
     
     this.logger.debug('ComponentManager instance created');
@@ -65,7 +59,8 @@ export class ComponentManager {
    * Register built-in components
    * 
    * @private
-   */    registerBuiltInComponents() {
+   */    
+  registerBuiltInComponents() {
     this.logger.debug('Registering built-in components...');
     
     // Built-in components will be registered externally via app.initialize()
@@ -96,50 +91,13 @@ export class ComponentManager {
    * @returns {Promise<Object>} Component instance
    */
   async loadComponent(componentName, props = {}, containerId = 'main-content') {
-    try {
-      this.logger.debug(`Loading component: ${componentName}`);
-      
-      // Check if component is registered
-      const ComponentClass = this.components.get(componentName);
-      if (!ComponentClass) {
-        throw new Error(`Component not registered: ${componentName}`);
-      }
-      
-      // Get container
-      const container = document.getElementById(containerId);
-      if (!container) {
-        throw new Error(`Container not found: ${containerId}`);
-      }
-      
-      // Check if the same component is already being loaded for this container
-      const loadingKey = `${componentName}-${containerId}`;
-      if (this.loadingComponents && this.loadingComponents.has(loadingKey)) {
-        this.logger.debug(`Component ${componentName} already loading for container ${containerId}`);
-        return this.loadingComponents.get(loadingKey);
-      }
-      
-      // Initialize loading tracking if it doesn't exist
-      if (!this.loadingComponents) {
-        this.loadingComponents = new Map();
-      }
-      
-      // Create loading promise
-      const loadingPromise = this._doLoadComponent(componentName, props, containerId, ComponentClass, container);
-      this.loadingComponents.set(loadingKey, loadingPromise);
-      
-      try {
-        const result = await loadingPromise;
-        this.loadingComponents.delete(loadingKey);
-        return result;
-      } catch (error) {
-        this.loadingComponents.delete(loadingKey);
-        throw error;
-      }
-      
-    } catch (error) {
-      this.logger.error(`Failed to load component: ${componentName}`, error);
+    const ComponentClass = this.components.get(componentName);
+    if (!ComponentClass) {
+      const error = new Error(`Component not registered: ${componentName}`);
+      this.errorHandler.handleError(error);
       throw error;
     }
+    return this.loadComponentClass(ComponentClass, props, containerId);
   }
 
   /**
@@ -152,147 +110,36 @@ export class ComponentManager {
    */
   async loadComponentClass(ComponentClass, props = {}, containerId = 'main-content') {
     try {
-      this.logger.debug(`Loading component class: ${ComponentClass.name}`);
-      
-      // Get container
       const container = document.getElementById(containerId);
       if (!container) {
         throw new Error(`Container not found: ${containerId}`);
       }
 
-      // Use the same loading logic as _doLoadComponent
-      const componentName = ComponentClass.name || 'UnknownComponent';
-      const result = await this._doLoadComponent(componentName, props, containerId, ComponentClass, container);
-      
-      this.logger.info(`Component class loaded successfully: ${ComponentClass.name}`);
-      return result;
-      
+      const instance = new ComponentClass(this.eventBus, props);
+      instance.container = container;
+
+      await instance.init();
+      this.renderer.render(instance, container);      if (instance.getLifecycle && typeof instance.getLifecycle === 'function') {
+        const lifecycle = instance.getLifecycle();
+        if (lifecycle.onMount && typeof lifecycle.onMount === 'function') {
+          await lifecycle.onMount.call(instance);
+        }
+      }
+
+      const instanceId = `${instance.name}-${Date.now()}`;
+      this.activeComponents.set(instanceId, instance);
+
+      this.logger.info(`Component loaded successfully: ${instance.name}`);
+      return instance;
     } catch (error) {
-      this.logger.error(`Failed to load component class: ${ComponentClass.name}`, error);
+      this.errorHandler.handleError(error, {
+        componentName: ComponentClass.name,
+        containerId
+      });
       throw error;
     }
   }
 
-  /**
-   * Internal method to actually load the component
-   * 
-   * @private
-   */  async _doLoadComponent(componentName, props, containerId, ComponentClass, container) {
-    // Clear container
-    container.innerHTML = '';
-      // Add props to component instance 
-    const componentProps = { 
-      ...props
-    };
-    
-    // Create component instance with autoRender disabled since we'll handle rendering manually
-    const instance = new ComponentClass(this.eventBus, componentProps);
-    
-    // Set container and element references
-    instance.container = container;
-    
-    // Create wrapper element
-    const element = document.createElement('div');
-    element.className = `component ${instance.name}`;
-    container.appendChild(element);
-    instance.element = element;
-    
-    // Initialize component first
-    await instance.init();
-    
-    // Get component template and render
-    const template = instance.getTemplate();
-    element.innerHTML = template;
-    
-    // Set up component methods and event listeners
-    this.setupComponentMethods(instance);    // Call lifecycle onMount
-    if (instance.getLifecycle && instance.getLifecycle().onMount) {
-      // Ensure element is properly connected to DOM before calling onMount
-      await new Promise(resolve => setTimeout(resolve, 10));
-      await instance.getLifecycle().onMount.call(instance);
-    }
-      // Store active instance
-    const instanceId = `${componentName}-${Date.now()}`;
-    this.activeComponents.set(instanceId, instance);
-    
-    this.logger.info(`Component loaded successfully: ${componentName}`);
-    
-    return instance;
-  }/**
-   * Set up component methods and event listeners
-   * 
-   * @private
-   * @param {Object} instance - Component instance
-   */  setupComponentMethods(instance) {
-    if (!instance.element) return;
-    
-    // Safely get methods - check if getMethods exists
-    const methods = (typeof instance.getMethods === 'function') ? instance.getMethods() : {};
-    
-    // Set up click handlers for elements with data-action attributes
-    const actionElements = instance.element.querySelectorAll('[data-action]');
-    actionElements.forEach(element => {
-      const clickHandler = (event) => {
-        const action = event.target.getAttribute('data-action');
-        if (methods[action]) {
-          event.preventDefault();
-          try {
-            methods[action].call(instance, event);
-          } catch (error) {
-            this.logger.error(`Error executing action: ${action}`, error);
-            this.eventBus.emit('component:error', { error, action, component: instance.name });
-          }
-        }
-      };
-      
-      element.addEventListener('click', clickHandler);
-      
-      // Store for cleanup when component is destroyed
-      if (!instance._componentManagerListeners) {
-        instance._componentManagerListeners = [];
-      }
-      instance._componentManagerListeners.push({
-        element,
-        type: 'click',
-        handler: clickHandler
-      });
-    });
-    
-    // Set up form handlers
-    const forms = instance.element.querySelectorAll('form');
-    forms.forEach(form => {
-      const submitHandler = (event) => {
-        const action = form.getAttribute('data-action');
-        if (action && methods[action]) {
-          try {
-            methods[action].call(instance, event);
-          } catch (error) {
-            this.logger.error(`Error executing form action: ${action}`, error);
-            this.eventBus.emit('component:error', { error, action, component: instance.name });
-          }
-        } else if (methods.onSubmit) {
-          try {
-            methods.onSubmit.call(instance, event);
-          } catch (error) {
-            this.logger.error('Error executing form onSubmit', error);
-            this.eventBus.emit('component:error', { error, component: instance.name });
-          }
-        }
-      };
-      
-      form.addEventListener('submit', submitHandler);
-      
-      // Store for cleanup when component is destroyed
-      if (!instance._componentManagerListeners) {
-        instance._componentManagerListeners = [];
-      }
-      instance._componentManagerListeners.push({
-        element: form,
-        type: 'submit',
-        handler: submitHandler
-      });
-    });
-  }
   /**
    * Unload a component
    * 
@@ -306,15 +153,15 @@ export class ComponentManager {
       if (!instance) {
         this.logger.warn(`Component instance not found: ${componentId}`);
         return false;
-      }
-
-      // Call lifecycle onUnmount
-      if (instance.getLifecycle && typeof instance.getLifecycle === 'function' && instance.getLifecycle().onUnmount) {
-        await instance.getLifecycle().onUnmount.call(instance);
+      }      // Call lifecycle onUnmount
+      if (instance.getLifecycle && typeof instance.getLifecycle === 'function') {
+        const lifecycle = instance.getLifecycle();
+        if (lifecycle.onUnmount && typeof lifecycle.onUnmount === 'function') {
+          await lifecycle.onUnmount.call(instance);
+        }
       }
       
-      // Clean up component manager listeners first
-      this.cleanupComponentListeners(instance);
+      this.renderer.cleanupComponentListeners(instance);
       
       // Call component's own destroy method for internal cleanup
       if (typeof instance.destroy === 'function') {
@@ -338,24 +185,6 @@ export class ComponentManager {
     }
   }
 
-  /**
-   * Clean up component manager listeners
-   * 
-   * @private
-   * @param {Object} instance - Component instance
-   */
-  cleanupComponentListeners(instance) {
-    if (instance._componentManagerListeners) {
-      instance._componentManagerListeners.forEach(({ element, type, handler }) => {
-        try {
-          element.removeEventListener(type, handler);
-        } catch (error) {
-          this.logger.warn('Failed to remove component manager listener', error);
-        }
-      });
-      instance._componentManagerListeners = [];
-    }
-  }
 
   /**
    * Set up event listeners

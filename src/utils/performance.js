@@ -8,11 +8,14 @@
 /**
  * Performance utilities class
  */
+import { Logger } from './logger.js';
+
 export class PerformanceUtils {
     constructor() {
         this.cache = new Map();
         this.observers = new Map();
         this.loadingStates = new Map();
+        this.logger = new Logger('PerformanceUtils');
     }
 
     /**
@@ -134,17 +137,16 @@ export class PerformanceUtils {
      */
     measure(func, label = 'Function') {
         const start = performance.now();
-        
         const result = func();
         
         if (result instanceof Promise) {
             return result.finally(() => {
                 const end = performance.now();
-                console.log(`${label} execution time: ${end - start}ms`);
+                this.logger.info(`${label} execution time`, { duration: `${(end - start).toFixed(2)}ms` });
             });
         } else {
             const end = performance.now();
-            console.log(`${label} execution time: ${end - start}ms`);
+            this.logger.info(`${label} execution time`, { duration: `${(end - start).toFixed(2)}ms` });
             return result;
         }
     }
@@ -165,69 +167,41 @@ export class PerformanceUtils {
      * @param {string} type - Resource type ('image', 'script', 'style')
      * @returns {Promise} Promise that resolves when all resources are loaded
      */
-    preloadResources(urls, type = 'image') {
-        const promises = urls.map(url => {
+    async preloadResources(resources) {
+        const promises = resources.map(resource => {
             return new Promise((resolve, reject) => {
                 let element;
-                
+                const { url, type } = resource;
+
                 switch (type) {
                     case 'image':
                         element = new Image();
+                        element.src = url;
                         break;
                     case 'script':
                         element = document.createElement('script');
+                        element.src = url;
                         element.async = true;
+                        document.head.appendChild(element);
                         break;
                     case 'style':
                         element = document.createElement('link');
                         element.rel = 'stylesheet';
+                        element.href = url;
+                        document.head.appendChild(element);
                         break;
                     default:
-                        reject(new Error(`Unsupported resource type: ${type}`));
-                        return;
+                        return reject(new Error(`Unsupported resource type: ${type}`));
                 }
 
-                element.onload = () => resolve(url);
-                element.onerror = () => reject(new Error(`Failed to load ${url}`));
-                
-                if (type === 'script' || type === 'style') {
-                    document.head.appendChild(element);
-                }
-                
-                element.src = url;
+                element.onload = () => resolve({ url, type, status: 'loaded' });
+                element.onerror = () => reject({ url, type, status: 'failed' });
             });
         });
 
-        return Promise.all(promises);
+        return Promise.allSettled(promises);
     }
 
-    /**
-     * Optimize images for different screen sizes
-     * @param {HTMLImageElement} img - Image element
-     * @param {Object} sizes - Size configuration
-     */
-    optimizeImage(img, sizes = {}) {
-        const defaultSizes = {
-            small: '(max-width: 480px)',
-            medium: '(max-width: 768px)',
-            large: '(min-width: 769px)'
-        };
-
-        const imageSizes = { ...defaultSizes, ...sizes };
-        
-        // Create picture element for responsive images
-        const picture = document.createElement('picture');
-        
-        Object.entries(imageSizes).forEach(([size, media]) => {
-            const source = document.createElement('source');
-            source.media = media;
-            source.srcset = img.dataset[`src${size.charAt(0).toUpperCase() + size.slice(1)}`] || img.src;
-            picture.appendChild(source);
-        });
-        
-        picture.appendChild(img);
-        return picture;
-    }
 
     /**
      * Monitor memory usage
@@ -304,51 +278,4 @@ export class PerformanceUtils {
     }
 }
 
-// Create global instance
 export const performanceUtils = new PerformanceUtils();
-
-/**
- * Performance decorator for methods
- * @param {string} label - Performance label
- * @returns {Function} Decorator function
- */
-export function perf(label) {
-    return function(target, propertyKey, descriptor) {
-        const originalMethod = descriptor.value;
-        
-        descriptor.value = function(...args) {
-            return performanceUtils.measure(
-                () => originalMethod.apply(this, args),
-                `${target.constructor.name}.${propertyKey}${label ? ` (${label})` : ''}`
-            );
-        };
-        
-        return descriptor;
-    };
-}
-
-/**
- * Cache decorator for methods
- * @param {number} ttl - Time to live in milliseconds
- * @returns {Function} Decorator function
- */
-export function cache(ttl = 300000) {
-    return function(target, propertyKey, descriptor) {
-        const originalMethod = descriptor.value;
-        
-        descriptor.value = function(...args) {
-            const cacheKey = `${target.constructor.name}.${propertyKey}.${JSON.stringify(args)}`;
-            const cached = performanceUtils.getCache(cacheKey);
-            
-            if (cached !== null) {
-                return cached;
-            }
-            
-            const result = originalMethod.apply(this, args);
-            performanceUtils.setCache(cacheKey, result, ttl);
-            return result;
-        };
-        
-        return descriptor;
-    };
-}

@@ -10,6 +10,7 @@
  */
 
 import { Logger } from './logger.js';
+import { Notification } from './notification.js';
 
 /**
  * Error types enum
@@ -45,28 +46,29 @@ export const ErrorSeverity = {
  * Handles all application errors, provides user-friendly messages,
  * and manages error reporting and recovery strategies.
  */
-export class ErrorHandler {
-  /**
+export class ErrorHandler {  /**
    * Initialize the error handler
    */
-  constructor() {
+  constructor(notification) {
     this.logger = new Logger('ErrorHandler');
+    
+    // Safely initialize notification system
+    if (notification) {
+      this.notification = notification;
+    } else if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      // Only create Notification in browser environment
+      this.notification = new Notification();
+    } else {
+      // Fallback for non-browser environments
+      this.notification = {
+        showToast: (message, type) => console.log(`[${type.toUpperCase()}] ${message}`),
+        showModal: (title, message, options) => console.log(`[MODAL] ${title}: ${message}`)
+      };
+    }
+    
     this.errorCounts = new Map();
     this.lastErrors = [];
     this.maxLastErrors = 10;
-    
-    // User-friendly error messages
-    this.userMessages = {
-      [ErrorType.VALIDATION]: 'Please check your input and try again.',
-      [ErrorType.AUTHENTICATION]: 'Please sign in to continue.',
-      [ErrorType.AUTHORIZATION]: 'You don\'t have permission to perform this action.',
-      [ErrorType.NETWORK]: 'Please check your internet connection and try again.',
-      [ErrorType.DATABASE]: 'We\'re experiencing technical difficulties. Please try again later.',
-      [ErrorType.SYSTEM]: 'Something went wrong. Please try again later.',
-      [ErrorType.USER_INPUT]: 'Invalid input provided. Please correct and try again.',
-      [ErrorType.CONFIGURATION]: 'Configuration error. Please contact support.'
-    };
-    
     this.logger.info('Error handler initialized');
   }
   /**
@@ -79,46 +81,21 @@ export class ErrorHandler {
    */
   handleError(error, context = {}, showToUser = true) {
     try {
-      // Prevent infinite recursion by checking if we're already handling this error
-      if (this._handlingError) {
-        console.error('Error handler recursion detected, using fallback:', error);
-        this.showBasicErrorMessage();
-        return this.createFallbackErrorInfo(error);
+      const errorInfo = this.createErrorInfo(error, context);
+      
+      this.logError(errorInfo);
+      this.trackError(errorInfo);
+      
+      if (showToUser) {
+        this.showUserNotification(errorInfo);
       }
       
-      this._handlingError = true;
+      this.reportError(errorInfo);
       
-      try {
-        // Create error information object
-        const errorInfo = this.createErrorInfo(error, context);
-        
-        // Log the error
-        this.logError(errorInfo);
-        
-        // Track error occurrence
-        this.trackError(errorInfo);
-        
-        // Show user notification if requested
-        if (showToUser) {
-          this.showUserNotification(errorInfo);
-        }
-        
-        // Report to external services if configured
-        this.reportError(errorInfo);
-        
-        return errorInfo;
-      } finally {
-        this._handlingError = false;
-      }
-      
+      return errorInfo;
     } catch (handlingError) {
-      // Fallback error handling
-      console.error('Error in error handler:', handlingError);
-      console.error('Original error:', error);
-      
-      // Show basic error message
-      this.showBasicErrorMessage();
-      
+      this.logger.error('Error in error handler:', { error: handlingError, originalError: error });
+      this.notification.showToast('An unexpected error occurred.', 'error');
       return this.createFallbackErrorInfo(error);
     }
   }
@@ -323,26 +300,25 @@ export class ErrorHandler {
     }
   }
 
-  /**
-   * Show user-friendly error notification
-   * 
-   * @private
-   * @param {Object} errorInfo - Structured error information
-   */
   showUserNotification(errorInfo) {
     const message = this.getUserFriendlyMessage(errorInfo);
     
-    // Use different notification methods based on severity
     switch (errorInfo.severity) {
       case ErrorSeverity.CRITICAL:
       case ErrorSeverity.HIGH:
-        this.showErrorModal(message, errorInfo);
+        this.notification.showModal('Error', message, {
+          details: JSON.stringify(errorInfo, null, 2),
+          buttons: [
+            { label: 'Report Issue', action: 'report', onClick: () => this.reportIssue(errorInfo) },
+            { label: 'Close', action: 'close' }
+          ]
+        });
         break;
       case ErrorSeverity.MEDIUM:
-        this.showErrorToast(message, 'error');
+        this.notification.showToast(message, 'error');
         break;
       case ErrorSeverity.LOW:
-        this.showErrorToast(message, 'warning');
+        this.notification.showToast(message, 'warning');
         break;
     }
   }
@@ -355,124 +331,20 @@ export class ErrorHandler {
    * @returns {string} User-friendly message
    */
   getUserFriendlyMessage(errorInfo) {
-    // Use predefined message for error type
-    let message = this.userMessages[errorInfo.type] || this.userMessages[ErrorType.SYSTEM];
-    
-    // Add specific details for certain error types
-    if (errorInfo.type === ErrorType.VALIDATION && errorInfo.context.field) {
-      message = `Please check the ${errorInfo.context.field} field and try again.`;
-    }
-    
-    return message;
-  }
-
-  /**
-   * Show error modal for high-severity errors
-   * 
-   * @private
-   * @param {string} message - Error message
-   * @param {Object} errorInfo - Error information
-   */
-  showErrorModal(message, errorInfo) {
-    // Create modal HTML
-    const modal = document.createElement('div');
-    modal.className = 'error-modal-overlay';
-    modal.innerHTML = `
-      <div class="error-modal">
-        <div class="error-modal-header">
-          <h3>⚠️ Error</h3>
-          <button class="error-modal-close">&times;</button>
-        </div>
-        <div class="error-modal-body">
-          <p>${message}</p>
-          <details style="margin-top: 16px;">
-            <summary>Technical Details</summary>
-            <pre style="font-size: 12px; margin-top: 8px;">${JSON.stringify(errorInfo, null, 2)}</pre>
-          </details>
-        </div>
-        <div class="error-modal-footer">
-          <button class="error-modal-retry">Try Again</button>
-          <button class="error-modal-report">Report Issue</button>
-        </div>
-      </div>
-    `;
-    
-    // Add styles
-    modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 10000;
-    `;
-    
-    // Add event listeners
-    modal.querySelector('.error-modal-close').onclick = () => modal.remove();
-    modal.querySelector('.error-modal-retry').onclick = () => {
-      modal.remove();
-      window.location.reload();
-    };
-    modal.querySelector('.error-modal-report').onclick = () => {
-      this.reportIssue(errorInfo);
-      modal.remove();
+    const messages = {
+      [ErrorType.VALIDATION]: `Please check the ${errorInfo.context.field || 'input'} field and try again.`,
+      [ErrorType.AUTHENTICATION]: 'Please sign in to continue.',
+      [ErrorType.AUTHORIZATION]: "You don't have permission to perform this action.",
+      [ErrorType.NETWORK]: 'Please check your internet connection and try again.',
+      [ErrorType.DATABASE]: "We're experiencing technical difficulties. Please try again later.",
+      [ErrorType.SYSTEM]: 'Something went wrong. Please try again later.',
+      [ErrorType.USER_INPUT]: 'Invalid input provided. Please correct and try again.',
+      [ErrorType.CONFIGURATION]: 'Configuration error. Please contact support.'
     };
     
-    document.body.appendChild(modal);
+    return messages[errorInfo.type] || messages[ErrorType.SYSTEM];
   }
 
-  /**
-   * Show error toast notification
-   * 
-   * @private
-   * @param {string} message - Error message
-   * @param {string} type - Toast type ('error' or 'warning')
-   */
-  showErrorToast(message, type = 'error') {
-    // Create toast element
-    const toast = document.createElement('div');
-    toast.className = `error-toast error-toast-${type}`;
-    toast.textContent = message;
-    
-    // Style the toast
-    toast.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      padding: 16px 20px;
-      background: ${type === 'error' ? '#fee2e2' : '#fef3cd'};
-      color: ${type === 'error' ? '#991b1b' : '#92400e'};
-      border: 1px solid ${type === 'error' ? '#fecaca' : '#fde68a'};
-      border-radius: 6px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      z-index: 9999;
-      max-width: 300px;
-      font-size: 14px;
-      line-height: 1.4;
-    `;
-    
-    document.body.appendChild(toast);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-      if (toast.parentNode) {
-        toast.remove();
-      }
-    }, 5000);
-  }
-
-  /**
-   * Show basic error message as fallback
-   * 
-   * @private
-   */
-  showBasicErrorMessage() {
-    alert('An unexpected error occurred. Please refresh the page and try again.');
-  }
 
   /**
    * Report error to external services

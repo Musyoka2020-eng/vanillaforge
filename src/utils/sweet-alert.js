@@ -8,69 +8,33 @@
  * @since 2025-06-14
  */
 
-/**
- * Wait for SweetAlert2 to be available
- * @returns {Promise<void>}
- */
-function waitForSwal() {
-  return new Promise((resolve, reject) => {
-    if (typeof window.Swal !== 'undefined') {
-      resolve();
-      return;
+export class SweetAlert {
+  constructor(swalInstance) {
+    if (!swalInstance) {
+      throw new Error('SweetAlert2 instance is required.');
     }
-    
-    let attempts = 0;
-    const maxAttempts = 50; // 5 seconds max wait time
-    
-    const checkSwal = () => {
-      attempts++;
-      
-      if (typeof window.Swal !== 'undefined') {
-        resolve();
-      } else if (attempts >= maxAttempts) {
-        reject(new Error('SweetAlert2 failed to load'));
-      } else {
-        setTimeout(checkSwal, 100);
-      }
-    };
-    
-    checkSwal();
-  });
-}
-
-/**
- * SweetAlert2 wrapper with consistent styling
- */
-export class SweetAlert {  static async fire(options) {
-    try {
-      await waitForSwal();
-      
-      // Default styling for the app
-      const defaultOptions = {
-        customClass: {
-          popup: 'swal-custom-popup',
-          title: 'swal-custom-title',
-          content: 'swal-custom-content',
-          confirmButton: 'swal-custom-confirm',
-          cancelButton: 'swal-custom-cancel'
-        },
-        buttonsStyling: false
-      };
-      
-      const result = window.Swal.fire({
-        ...defaultOptions,
-        ...options
-      });
-      
-      return result;
-    } catch (error) {
-      // Fallback: use browser alert
-      alert(`${options.title || 'Alert'}: ${options.text || ''}`);
-      return { isConfirmed: true };
-    }
+    this.swal = swalInstance;
   }
-  
-  static async success(title, text = '', options = {}) {
+
+  fire(options) {
+    const defaultOptions = {
+      customClass: {
+        popup: 'swal-custom-popup',
+        title: 'swal-custom-title',
+        content: 'swal-custom-content',
+        confirmButton: 'swal-custom-confirm',
+        cancelButton: 'swal-custom-cancel'
+      },
+      buttonsStyling: false
+    };
+
+    return this.swal.fire({
+      ...defaultOptions,
+      ...options
+    });
+  }
+
+  success(title, text = '', options = {}) {
     return this.fire({
       icon: 'success',
       title,
@@ -78,8 +42,8 @@ export class SweetAlert {  static async fire(options) {
       ...options
     });
   }
-  
-  static async error(title, text = '', options = {}) {
+
+  error(title, text = '', options = {}) {
     return this.fire({
       icon: 'error',
       title,
@@ -87,8 +51,8 @@ export class SweetAlert {  static async fire(options) {
       ...options
     });
   }
-  
-  static async warning(title, text = '', options = {}) {
+
+  warning(title, text = '', options = {}) {
     return this.fire({
       icon: 'warning',
       title,
@@ -96,8 +60,8 @@ export class SweetAlert {  static async fire(options) {
       ...options
     });
   }
-  
-  static async info(title, text = '', options = {}) {
+
+  info(title, text = '', options = {}) {
     return this.fire({
       icon: 'info',
       title,
@@ -105,8 +69,8 @@ export class SweetAlert {  static async fire(options) {
       ...options
     });
   }
-  
-  static async confirm(title, text = '', options = {}) {
+
+  confirm(title, text = '', options = {}) {
     return this.fire({
       icon: 'question',
       title,
@@ -118,5 +82,3 @@ export class SweetAlert {  static async fire(options) {
     });
   }
 }
-
-export default SweetAlert;

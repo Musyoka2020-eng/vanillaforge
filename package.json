@@ -1,8 +1,10 @@
-{  "name": "vanillaforge",
+{
+  "name": "vanillaforge",
   "version": "1.0.0",
   "description": "VanillaForge - A modern, lightweight vanilla JavaScript framework for forging Single Page Applications",
   "type": "module",
-  "main": "src/framework.js",  "keywords": [
+  "main": "src/framework.js",
+  "keywords": [
     "vanillaforge",
     "vanilla-javascript",
     "spa-framework",
@@ -23,17 +25,21 @@
     "lint": "eslint src/ --ext .js",
     "format": "prettier --write \"src/**/*.{js,css,html}\"",
     "test": "echo 'Tests will be added'",
-    "example": "cd examples/todo-app && npm run dev"
-  },
-  "devDependencies": {
+    "example": "cd examples/todo-app && npm run dev",
+    "css:discover": "node scripts/css-discovery.js",
+    "css:generate": "node scripts/css-discovery.js --generate"
+  },"devDependencies": {
     "eslint": "^9.12.0",
     "prettier": "^3.3.3",
-    "http-server": "^14.1.1"
+    "http-server": "^14.1.1",
+    "esbuild": "^0.20.0",
+    "glob": "^10.3.0"
   },
   "dependencies": {},
   "engines": {
     "node": ">=18.0.0"
-  },  "repository": {
+  },
+  "repository": {
     "type": "git",
     "url": "https://github.com/your-username/vanillaforge.git"
   },
@@ -43,7 +49,8 @@
     "examples/",
     "README.md",
     "CHANGELOG.md"
-  ],  "framework": {
+  ],
+  "framework": {
     "name": "VanillaForge",
     "tagline": "Forge modern SPAs with vanilla JavaScript",
     "features": [

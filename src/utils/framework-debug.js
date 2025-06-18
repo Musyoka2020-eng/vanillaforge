@@ -202,20 +202,30 @@ export class FrameworkDebug {
     
     return stats;
   }
-
   /**
    * Simulate component stress test
-   */  async stressTestComponents(iterations = 10) {
+   */  async stressTestComponents(iterations = 10, componentName = null) {
     if (!this.isEnabled) {
       console.warn('Debug mode must be enabled for stress testing');
       return;
     }
 
-    this.logger.info(`Starting component stress test (${iterations} iterations)`);
+    // Auto-detect a registered component if none specified
+    if (!componentName) {
+      const registeredComponents = this.app.componentManager?.getRegisteredComponents() || [];
+      if (registeredComponents.length === 0) {
+        console.warn('No registered components found for stress testing');
+        return { error: 'No components registered' };
+      }
+      componentName = registeredComponents[0]; // Use first registered component
+    }
+
+    this.logger.info(`Starting component stress test (${iterations} iterations) on component: ${componentName}`);
     
     const startTime = performance.now();
     const results = {
       iterations,
+      componentName,
       successes: 0,
       failures: 0,
       errors: []
@@ -223,8 +233,13 @@ export class FrameworkDebug {
 
     for (let i = 0; i < iterations; i++) {
       try {
+        // Check if component is registered before trying to load it
+        if (!this.app.componentManager.components.has(componentName)) {
+          throw new Error(`Component '${componentName}' is not registered`);
+        }
+        
         // Simulate rapid component loading/unloading
-        await this.app.componentManager.loadComponent('home-component', {}, 'main-content');
+        await this.app.componentManager.loadComponent(componentName, {}, 'main-content');
         await new Promise(resolve => setTimeout(resolve, 10)); // Small delay
         
         results.successes++;
