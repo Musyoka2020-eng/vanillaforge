@@ -16,6 +16,7 @@ VanillaForge gives you all the power of modern frameworks—components, routing,
 - 🛣️ **Full Routing** - SPA routing with history API
 - 📡 **Event System** - Centralized communication
 - 🔧 **Modern JS** - ES2020+, Web APIs, ES Modules
+- 🌐 **GitHub Pages Ready** - Deploy instantly with zero configuration
 
 ## 🚀 Quick Start
 
@@ -67,6 +68,7 @@ await app.start();
 - 📡 **[Event Bus](docs/event-bus.md)** - Component communication
 - 🔧 **[API Reference](docs/API.md)** - Complete API documentation
 - 🏗️ **[Build System](docs/build-system.md)** - Production builds
+- 🌐 **[GitHub Pages](docs/github-pages.md)** - Deploy to GitHub Pages
 
 **Examples:**
 - 📝 **[Todo App](examples/todo-app/)** - Complete working example

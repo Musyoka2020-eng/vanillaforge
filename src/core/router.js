@@ -22,17 +22,29 @@ export class Router {
    * Initialize the router
    * 
    * @param {EventBus} eventBus - Application event bus
+   * @param {Logger} logger - Logger instance
+   * @param {ErrorHandler} errorHandler - Error handler instance
+   * @param {Object} config - Router configuration
    */  
-  constructor(eventBus, logger, errorHandler) {
+  constructor(eventBus, logger, errorHandler, config = {}) {
     this.eventBus = eventBus;
     this.logger = logger || new Logger('Router');
     this.errorHandler = errorHandler || new ErrorHandler();
+    this.config = {
+      basePath: '',
+      mode: 'history',
+      fallback: '/404',
+      ...config
+    };
     this.routes = new Map();
     this.currentRoute = null;
     this.isInitialized = false;
     this.beforeNavigationCallbacks = [];
     this.afterNavigationCallbacks = [];
     this.isNavigating = false;
+
+    // Normalize base path
+    this.basePath = this.config.basePath.replace(/\/+$/, ''); // Remove trailing slashes
 
     this.handlePopState = this.handlePopState.bind(this);
     this.handleLinkClick = this.handleLinkClick.bind(this);
@@ -122,16 +134,16 @@ export class Router {
     
     this.logger.debug('Event listeners set up');
   }
-
   /**
    * Handle initial route when the app starts
    * 
    * @private
-   */  async handleInitialRoute() {
+   */  
+  async handleInitialRoute() {
     const currentPath = window.location.pathname;
-    await this.navigateTo(currentPath, { replace: true });
+    const resolvedPath = this.resolvePathFromBase(currentPath);
+    await this.navigateTo(resolvedPath, { replace: true });
   }
-
   /**
    * Handle browser back/forward navigation
    * 
@@ -140,9 +152,9 @@ export class Router {
    */
   async handlePopState(event) {
     const path = window.location.pathname;
-    await this.navigateTo(path, { fromPopState: true });
+    const resolvedPath = this.resolvePathFromBase(path);
+    await this.navigateTo(resolvedPath, { fromPopState: true });
   }
-
   /**
    * Handle link clicks for SPA navigation
    * 
@@ -165,7 +177,8 @@ export class Router {
     if (event.ctrlKey || event.metaKey || event.shiftKey) return;
     
     event.preventDefault();
-    this.navigateTo(url.pathname + url.search + url.hash);
+    const resolvedPath = this.resolvePathFromBase(url.pathname);
+    this.navigateTo(resolvedPath + url.search + url.hash);
   }
 
   /**
@@ -185,10 +198,21 @@ export class Router {
     this.logger.info(`Navigating to ${path}`);
 
     try {
-      const { route, params } = this.findRoute(path);
-
-      if (!route) {
+      const { route, params } = this.findRoute(path);      if (!route) {
         this.logger.warn(`No route found for path: ${path}`);
+        
+        // If no route found and we have a base path, try redirecting to home
+        if (this.basePath && path === '/') {
+          // This is likely the case where GitHub Pages redirected to the base path
+          // Try to navigate to the home route
+          const homeRoute = this.findRoute('/');
+          if (homeRoute.route) {
+            this.logger.info('Redirecting to home route from base path');
+            this.isNavigating = false;
+            return this.navigateTo('/', { replace: true });
+          }
+        }
+        
         this.eventBus.emit('router:not-found', { path });
         this.isNavigating = false;
         return;
@@ -198,10 +222,9 @@ export class Router {
       if (!canNavigate) {
         this.isNavigating = false;
         return;
-      }
-
-      if (!options.fromPopState) {
-        const url = path + (options.query ? `?${new URLSearchParams(options.query)}` : '');
+      }      if (!options.fromPopState) {
+        const fullPath = this.addBasePath(path);
+        const url = fullPath + (options.query ? `?${new URLSearchParams(options.query)}` : '');
         window.history[options.replace ? 'replaceState' : 'pushState']({ path }, '', url);
       }
 
@@ -399,5 +422,46 @@ export class Router {
     this.isInitialized = false;
     
     this.logger.info('Router cleaned up');
+  }
+
+  /**
+   * Resolve base path from current path
+   * 
+   * @param {string} path - Full path including base path
+   * @returns {string} - Path without base path
+   * @private
+   */
+  resolvePathFromBase(path) {
+    if (!this.basePath) return path;
+    
+    if (path.startsWith(this.basePath)) {
+      const resolved = path.slice(this.basePath.length) || '/';
+      return resolved.startsWith('/') ? resolved : '/' + resolved;
+    }
+    
+    return path;
+  }
+
+  /**
+   * Add base path to path
+   * 
+   * @param {string} path - Path to add base to
+   * @returns {string} - Path with base path
+   * @private
+   */
+  addBasePath(path) {
+    if (!this.basePath) return path;
+    
+    const normalizedPath = path.startsWith('/') ? path : '/' + path;
+    return this.basePath + normalizedPath;
+  }
+
+  /**
+   * Get current base path
+   * 
+   * @returns {string} - Current base path
+   */
+  getBasePath() {
+    return this.basePath;
   }
 }

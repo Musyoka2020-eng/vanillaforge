@@ -110,10 +110,9 @@ export class FrameworkApp {
                 });
                 this.logger.info('Components registered', Object.keys(options.components));
             }
-            
-            // Initialize router if routing is enabled (after ComponentManager is ready)
+              // Initialize router if routing is enabled (after ComponentManager is ready)
             if (options.routes) {
-                this.router = new Router(this.eventBus, this.logger.child('Router'), this.errorHandler);
+                this.router = new Router(this.eventBus, this.logger.child('Router'), this.errorHandler, this.config.router);
                 
                 // Register routes
                 Object.entries(options.routes).forEach(([path, component]) => {

@@ -4,16 +4,19 @@ import { NotFoundComponent } from './components/not-found-component.js';
 
 async function initializeApp() {
   try {
+    // Detect if running on GitHub Pages and set base path
+    const isGitHubPages = window.location.hostname.includes('github.io');
+    const basePath = isGitHubPages ? '/vanillaforge' : '';
+
     const app = createApp({
       appName: 'VanillaForge Demo',
       debug: true,
       router: {
         mode: 'history',
         fallback: '/404',
+        basePath: basePath,
       },
-    });
-
-    await app.initialize({
+    });    await app.initialize({
       routes: {
         '/': HomeComponent,
         '/home': HomeComponent,
@@ -22,9 +25,19 @@ async function initializeApp() {
       components: {
         'home-component': HomeComponent,
         'not-found-component': NotFoundComponent,
-      },
-    });
+      },    });
     await app.start();
+
+    // Handle redirect parameter from GitHub Pages 404
+    if (isGitHubPages) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectPath = urlParams.get('redirect');
+      if (redirectPath && app.router) {
+        // Clean up the URL and navigate to the intended path
+        window.history.replaceState(null, '', window.location.pathname);
+        app.router.navigateTo(redirectPath);
+      }
+    }
 
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       console.log('🔥 VanillaForge application started!');

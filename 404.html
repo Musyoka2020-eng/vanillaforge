@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VanillaForge - Page Not Found</title>
+    <script>
+        // GitHub Pages 404 redirect for single-page applications
+        // This script redirects to the main index.html with the current path as a parameter
+        const isGitHubPages = window.location.hostname.includes('github.io');
+        if (isGitHubPages) {
+            const pathSegments = window.location.pathname.split('/').filter(segment => segment);
+            if (pathSegments.length > 1 && pathSegments[0] === 'vanillaforge') {
+                // Remove the repo name from the path and redirect to index.html
+                const redirectPath = '/' + pathSegments.slice(1).join('/');
+                const redirectUrl = window.location.origin + '/vanillaforge/?redirect=' + encodeURIComponent(redirectPath);
+                window.location.href = redirectUrl;
+            }
+        }
+    </script>
+</head>
+<body>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h1>Redirecting...</h1>
+        <p>If you are not automatically redirected, <a href="/vanillaforge/">click here</a>.</p>
+    </div>
+</body>
+</html>
